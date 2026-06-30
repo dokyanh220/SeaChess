@@ -1,0 +1,56 @@
+# General
+.DS_Store
+Thumbs.db
+
+# Node.js dependencies
+node_modules/
+# If using npm or yarn lock files, you might want to keep them tracked, but often they are committed. Uncomment if you prefer to ignore:
+# package-lock.json
+# yarn.lock
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Build output
+dist/
+build/
+# If using TypeScript
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+
+# IDE / editor
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS generated files
+ehthumbs.db
+Desktop.ini
+
+# Misc
+*.pem
+*.key
+
+# .NET
+bin/
+obj/
+
+# Rider / Visual Studio
+.vs/
+
+# User files
+*.user
+*.suo
+
+# NuGet
+*.nupkg
+

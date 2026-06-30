@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="SeaChess.API/SeaChess.API.csproj" />
+  <Project Path="SeaChess.Application/SeaChess.Application.csproj" />
+  <Project Path="SeaChess.Domain/SeaChess.Domain.csproj" />
+  <Project Path="SeaChess.Infrastructure/SeaChess.Infrastructure.csproj" />
+  <Project Path="SeaChess.Tests/SeaChess.Tests.csproj" />
+</Solution>
