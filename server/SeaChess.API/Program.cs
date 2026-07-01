@@ -5,13 +5,14 @@ using Microsoft.IdentityModel.Tokens;
 using SeaChess.Application.Interfaces;
 using SeaChess.Application.Services;
 using SeaChess.Infrastructure.Data;
+using SeaChess.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString =  builder.Configuration.GetConnectionString("DefaultConnection");
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = Encoding.ASCII.GetBytes("SecretKey");
+var secretKey = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"]!);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -43,6 +44,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 

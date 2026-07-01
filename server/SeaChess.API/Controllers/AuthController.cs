@@ -6,6 +6,6 @@ namespace SeaChess.API.Controllers
     [Route("api/[controller]")]
     public class AuthController
     {
-        private readonly IAuthService _authservice;
+        // private readonly IAuthService _authService;
     }
 }
