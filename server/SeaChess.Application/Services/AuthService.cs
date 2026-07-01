@@ -37,7 +37,8 @@ namespace SeaChess.Application.Services
                 DisplayName = req.Displayname,
                 Email = req.Email,
                 PasswordHash = passwordHash,
-                Elo = 500,
+                Experience = 0,
+                Elo = 799,
                 TotalMatches = 0,
                 Wins = 0,
                 Loses = 0,
@@ -79,7 +80,7 @@ namespace SeaChess.Application.Services
         private string GenerateJwtToken(User user)
         {
             var jwtSettings = _config.GetSection("JwtSettings");
-            var key = Encoding.ASCII.GetBytes(jwtSettings["secrectKey"]!);
+            var key = Encoding.ASCII.GetBytes(jwtSettings["secretKey"]!);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {

@@ -7,5 +7,6 @@ namespace SeaChess.Application.Interfaces
         Task<bool> ExistsByUsernameOrEmailAsync(string username, string email);
         Task<User?> GetByUsernameAsync(string username);
         Task AddAsync(User user);
+        Task<User?> GetByIdAsync(Guid userId);
     }
 }

@@ -1,6 +1,24 @@
-@SeaChess.API_HostAddress = http://localhost:5039
+@host = http://localhost:5039
 
-GET {{SeaChess.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### Health check
+# GET {{host}}/health
 
-###
+# ### Register
+# POST {{host}}/api/Auth/register
+# Content-Type: application/json
+
+# {
+#   "Username": "test",
+#   "Displayname": "test",
+#   "Email": "test@gmail.com",
+#   "Password": "123456"
+# }
+
+# ### Login
+POST {{host}}/api/Auth/login
+Content-Type: application/json
+
+{
+  "Username": "test",
+  "Password": "123456"
+}

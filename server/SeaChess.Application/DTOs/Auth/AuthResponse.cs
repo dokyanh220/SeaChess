@@ -6,6 +6,5 @@ namespace SeaChess.Application.DTOs.Auth
         public Guid UserId { get; set; }
         public string Username { get; set; } = string.Empty;
         public string Displayname { get; set; } = string.Empty;
-        public string Elo { get; set; } = string.Empty;
     }
 }

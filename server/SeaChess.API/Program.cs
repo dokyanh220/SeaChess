@@ -6,14 +6,20 @@ using SeaChess.Application.Interfaces;
 using SeaChess.Application.Services;
 using SeaChess.Infrastructure.Data;
 using SeaChess.Infrastructure.Repositories;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString =  builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<ApplicationDbContext>(options => 
+    options.UseNpgsql(connectionString));
+
+var redisConnectionString =  builder.Configuration.GetConnectionString("RedisConnection");
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+    ConnectionMultiplexer.Connect(redisConnectionString!));
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"]!);
-
 builder.Services.AddAuthentication(options =>
 {
    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -36,16 +42,13 @@ builder.Services.AddAuthentication(options =>
    };
 });
 
-
-builder.Services.AddDbContext<ApplicationDbContext>(options => 
-    options.UseNpgsql(connectionString));
-
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 
@@ -61,8 +64,8 @@ app.MapGet("/health", () =>
 })
 .WithName("health");
 
+app.MapControllers();
 app.UseHttpsRedirection();
 app.UseAuthentication(); 
 app.UseAuthorization();
-app.MapControllers();
 app.Run();

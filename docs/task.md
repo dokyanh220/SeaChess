@@ -1,33 +1,7 @@
-# Sprint 2: Database & REST API
-
-> **Mục tiêu:** Thiết lập cơ sở dữ liệu, tích hợp Entity Framework Core, xây dựng hệ thống xác thực (Authentication), REST API và khởi tạo Redis làm nền tảng cho các Sprint tiếp theo.
-
-| Task | Tên công việc | Mô tả |
-|------|---------------|--------|
-| 2.1 | **Thiết kế Database Schema** | Phân tích yêu cầu và thiết kế schema cho các bảng **Users** và **Matches**, bao gồm khóa chính, khóa ngoại, chỉ mục (Indexes) và các ràng buộc dữ liệu (Constraints). |
-| 2.2 | **Tích hợp Entity Framework Core** | Cài đặt Entity Framework Core trong project **Infrastructure**, cấu hình `DbContext`, Mapping, Migration và kết nối đến SQL Server. |
-| 2.3 | **Xây dựng Authentication** | Phát triển hệ thống xác thực gồm **Đăng ký** và **Đăng nhập**, mã hóa mật khẩu bằng BCrypt, xác thực bằng JWT và phân quyền cơ bản. |
-| 2.4 | **Xây dựng REST API** | Tạo các Controller và Service để cung cấp API quản lý thông tin người chơi như xem hồ sơ, cập nhật hồ sơ và lấy dữ liệu người dùng. |
-| 2.5 | **Khởi tạo Redis** | Cấu hình kết nối Redis, xây dựng lớp Redis Service và kiểm tra khả năng đọc/ghi dữ liệu để chuẩn bị cho hệ thống Matchmaking và Cache ở các Sprint sau. |
-
----
-
-## Deliverables
-
-- Thiết kế Database hoàn chỉnh.
-- Entity Framework Core hoạt động với Migration.
-- Hệ thống Authentication bằng JWT.
-- REST API cho User Info.
-- Redis được tích hợp và kết nối thành công.
-
----
-
-## Công nghệ sử dụng
-
-- ASP.NET Core Web API
-- Entity Framework Core
-- SQL Server
-- Redis
-- JWT Authentication
-- BCrypt Password Hashing
-- Clean Architecture
+| Task                             | Mô tả chi tiết                                                                                                                           |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Cài đặt SignalR               | Tích hợp SignalR vào `SeaChess.API`, cấu hình xác thực WebSocket bằng JWT để đảm bảo chỉ user hợp lệ mới kết nối được realtime.          |
+| 2. Tạo ChessHub                  | Xây dựng `ChessHub` làm trung tâm xử lý realtime events từ client như `FindMatch`, `MakeMove`, `CancelMatch`.                            |
+| 3. Logic Matchmaking (Ghép trận) | Sử dụng Redis để lưu danh sách người chơi đang chờ. Thuật toán sẽ ghép 2 người có Elo gần nhau để tạo trận đấu tối ưu.                   |
+| 4. Đồng bộ State Trận Đấu        | Khi match thành công, khởi tạo bàn cờ từ Core Engine (Sprint 1), lưu state ván đấu vào Redis và broadcast dữ liệu realtime cho 2 client. |
+| 5. Xử lý nước đi Realtime        | Nhận move từ client, validate qua Core Engine (luật cờ), nếu hợp lệ thì cập nhật state và gửi move cho đối thủ theo thời gian thực.      |

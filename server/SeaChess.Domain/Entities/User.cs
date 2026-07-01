@@ -9,10 +9,11 @@ namespace SeaChess.Domain.Entities
         public string PasswordHash { get; set; } = string.Empty;
         public string? AvatarUrl { get; set; }
         public int TotalMatches { get; set; }
+        public int Experience { get; set; } = 0;
         public int Wins { get; set; }
         public int Loses { get; set; }
         public int Draw { get; set; }
-        public int Elo { get; set; } = 500;
+        public int Elo { get; set; } = 799;
         public bool EmailVerified { get; set; } = false;
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
