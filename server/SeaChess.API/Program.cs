@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SeaChess.API.Hubs;
 using SeaChess.Application.Interfaces;
 using SeaChess.Application.Services;
 using SeaChess.Infrastructure.Data;
@@ -39,13 +40,29 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
+   }; 
+
+   options.Events = new JwtBearerEvents
+   {
+       OnMessageReceived = context =>
+       {
+            var accessToken = context.Request.Query["access_token"];
+
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/chess"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+       }
    };
 });
 
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddSignalR();
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -64,6 +81,8 @@ app.MapGet("/health", () =>
 })
 .WithName("health");
 
+// Chuẩn bị Endpoint cho SignalR Hub (Task 2 sẽ định nghĩa class ChessHub)
+app.MapHub<ChessHub>("/hubs/chess");
 app.MapControllers();
 app.UseHttpsRedirection();
 app.UseAuthentication(); 
