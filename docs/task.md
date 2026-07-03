@@ -1,7 +1,9 @@
-| Task                             | Mô tả chi tiết                                                                                                                           |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Cài đặt SignalR               | Tích hợp SignalR vào `SeaChess.API`, cấu hình xác thực WebSocket bằng JWT để đảm bảo chỉ user hợp lệ mới kết nối được realtime.          |
-| 2. Tạo ChessHub                  | Xây dựng `ChessHub` làm trung tâm xử lý realtime events từ client như `FindMatch`, `MakeMove`, `CancelMatch`.                            |
-| 3. Logic Matchmaking (Ghép trận) | Sử dụng Redis để lưu danh sách người chơi đang chờ. Thuật toán sẽ ghép 2 người có Elo gần nhau để tạo trận đấu tối ưu.                   |
-| 4. Đồng bộ State Trận Đấu        | Khi match thành công, khởi tạo bàn cờ từ Core Engine (Sprint 1), lưu state ván đấu vào Redis và broadcast dữ liệu realtime cho 2 client. |
-| 5. Xử lý nước đi Realtime        | Nhận move từ client, validate qua Core Engine (luật cờ), nếu hợp lệ thì cập nhật state và gửi move cho đối thủ theo thời gian thực.      |
+# Sprint 4 Backlog
+
+| **Tên Task** | **Mô tả chi tiết** |
+|--------------|--------------------|
+| **1. Khởi tạo dự án Flutter** | Thiết lập cấu trúc thư mục theo **Clean Architecture** kết hợp mô hình **Feature-first**, bao gồm các tầng **Presentation**, **Domain**, **Data** và **Core**. Đồng thời tích hợp các thư viện nền tảng như **Riverpod**, **GoRouter**, **Dio** và **Flutter Secure Storage**. |
+| **2. Kết nối REST API & Authentication** | Xây dựng giao diện **Đăng nhập** và **Đăng ký**, tích hợp REST API xác thực với Server, lưu trữ an toàn **JWT Token** bằng **Flutter Secure Storage**, đồng thời tự động đính kèm Token vào các request HTTP. |
+| **3. Xây dựng giao diện bàn cờ (Chessboard)** | Phát triển giao diện bàn cờ 8×8 và hiển thị quân cờ dựa trên chuỗi **FEN** nhận từ Server. Chuyển đổi dữ liệu FEN thành 64 ô cờ cùng các quân cờ tương ứng trên giao diện Flutter. |
+| **4. Tích hợp SignalR Client** | Thiết lập kết nối **WebSocket** tới `ChessHub`, gửi kèm **JWT Token** để xác thực. Lắng nghe các sự kiện thời gian thực như `MatchStarted`, `ReceiveMove` và các thông báo trạng thái trận đấu. |
+| **5. Đồng bộ UI & Xử lý nước đi** | Xây dựng chức năng **Drag & Drop** quân cờ trên giao diện. Sau khi người chơi thực hiện nước đi, gửi sự kiện `MakeMove` lên Server thông qua SignalR, đồng thời cập nhật giao diện theo trạng thái mới mà Server trả về nhằm đảm bảo mô hình **Authoritative Server**. |

@@ -57,6 +57,20 @@ namespace SeaChess.Domain.Services
             return legalMoves;
         }
 
+        // Kiểm tra nước đi
+        public static bool ValidateMove(Board board, Position from, Position to, PieceColor playerColor)
+        {
+            // 1. Kiểm tra xem ô xuất phát có quân cờ của người chơi không
+            if (!board.Squares.TryGetValue(from, out var piece) || piece.Color != playerColor)
+                return false;
+
+            // 2. Lấy tất cả các nước đi hợp lệ tuyệt đối (Legal Moves) của quân cờ này
+            var legalMoves = GetLegalMoves(board, playerColor);
+
+            // 3. Kiểm tra xem nước đi Client gửi lên có nằm trong danh sách Legal Moves không
+            return legalMoves.Any(m => m.From == from && m.To == to);
+        }
+
         // State chiếu hết
         public static bool IsCheckmate(Board board, PieceColor color)
         {

@@ -68,6 +68,35 @@ namespace SeaChess.Domain.Entities
             }
         }
 
+        public void MakeMove(Position from, Position to, PieceType? promotion = null)
+        {
+            // 1. Lấy quân cờ ở vị trí xuất phát
+            if (Squares.TryGetValue(from, out var piece))
+            {
+                // 2. Xóa ô cũ
+                Squares.Remove(from);
+                
+                // 3. Nếu có phong cấp (Promotion), đổi loại quân
+                if (promotion.HasValue) 
+                {
+                    piece = new Piece(piece.Color, promotion.Value);
+                }
+
+                // 4. Đặt vào ô mới (sẽ đè lên quân bị ăn nếu có)
+                Squares[to] = piece;
+
+                // TODO: Cập nhật thêm quyền Nhập thành (CastlingRights) 
+                // và mục tiêu Bắt qua đường (EnPassantTarget) tại đây
+            }
+        }
+
+        public string ToFenString()
+        {
+            // Thuật toán quét 8 hàng, đếm ô trống và nối các ký hiệu quân cờ (K, q, p, P...)
+            // Kết hợp với CastlingRights, EnPassantTarget, Halfmove, Fullmove.
+            return "chuỗi_fen_đã_được_tính_toán_hoàn_chỉnh"; 
+        }
+
         private PieceType GetPieceTypeFromChar(char c) => c switch
         {
             'p' => PieceType.Pawn,

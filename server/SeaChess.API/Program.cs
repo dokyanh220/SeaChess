@@ -7,6 +7,7 @@ using SeaChess.Application.Interfaces;
 using SeaChess.Application.Services;
 using SeaChess.Infrastructure.Data;
 using SeaChess.Infrastructure.Repositories;
+using SeaChess.Infrastructure.Services;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -66,6 +67,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IMatchMakingService, MatchMakingService>();
+builder.Services.AddScoped<IGameStateService, GameStateService>();
 
 var app = builder.Build();
 
