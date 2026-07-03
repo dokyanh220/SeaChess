@@ -59,6 +59,17 @@ builder.Services.AddAuthentication(options =>
    };
 });
 
+builder.Services.AddCors(options =>
+{
+   options.AddPolicy("SeaChessCorsPolicy", policy =>
+   {
+       policy.SetIsOriginAllowed(origin => true)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+   }) ;
+});
+
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -84,6 +95,7 @@ app.MapGet("/health", () =>
 })
 .WithName("health");
 
+app.UseCors("SeaChessCorsPolicy");
 // Chuẩn bị Endpoint cho SignalR Hub (Task 2 sẽ định nghĩa class ChessHub)
 app.MapHub<ChessHub>("/hubs/chess");
 app.MapControllers();

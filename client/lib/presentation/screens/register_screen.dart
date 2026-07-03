@@ -1,16 +1,36 @@
+import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 // Provider tạm thời quản lý trạng thái loading cho màn hình Đăng ký
-final isRegisterLoadingProvider = StateProvider<bool>((ref) => false);
-
-class RegisterScreen extends ConsumerWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isLoading = ref.watch(isRegisterLoadingProvider);
+  ConsumerState<ConsumerStatefulWidget> createState() => _registerScreenState();
+}
+
+class _registerScreenState extends ConsumerState<RegisterScreen> {
+  final _usernameController = TextEditingController();
+  final _displayNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _displayNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoading = ref.watch(authNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -35,13 +55,14 @@ class RegisterScreen extends ConsumerWidget {
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const Text(
-                'Tạo tài khoản để bắt đầu leo rank',
+                'Tạo tài khoản để bắt đầu chơi',
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 40),
 
               // Ô nhập Tên đăng nhập
               TextFormField(
+                controller: _usernameController,
                 enabled: !isLoading,
                 decoration: InputDecoration(
                   labelText: 'Tên đăng nhập',
@@ -53,8 +74,23 @@ class RegisterScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
+              // Ô nhập Tên hiển thị
+              TextFormField(
+                controller: _displayNameController,
+                enabled: !isLoading,
+                decoration: InputDecoration(
+                  labelText: 'Tên hiển thị (Tên trong game)',
+                  prefixIcon: const Icon(Icons.badge),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // Ô nhập Email
               TextFormField(
+                controller: _emailController,
                 enabled: !isLoading,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
@@ -69,6 +105,7 @@ class RegisterScreen extends ConsumerWidget {
 
               // Ô nhập Mật khẩu
               TextFormField(
+                controller: _passwordController,
                 enabled: !isLoading,
                 obscureText: true,
                 decoration: InputDecoration(
@@ -83,6 +120,7 @@ class RegisterScreen extends ConsumerWidget {
 
               // Ô Xác nhận Mật khẩu
               TextFormField(
+                controller: _confirmPasswordController,
                 enabled: !isLoading,
                 obscureText: true,
                 decoration: InputDecoration(
@@ -110,12 +148,65 @@ class RegisterScreen extends ConsumerWidget {
                   onPressed: isLoading
                       ? null
                       : () async {
-                          // Giả lập hiệu ứng gọi API mất 2 giây
-                          ref.read(isRegisterLoadingProvider.notifier).state =
-                              true;
-                          await Future.delayed(const Duration(seconds: 2));
-                          ref.read(isRegisterLoadingProvider.notifier).state =
-                              false;
+                          final user = _usernameController.text.trim();
+                          final displayName = _displayNameController.text
+                              .trim();
+                          final email = _emailController.text.trim();
+                          final pass = _passwordController.text.trim();
+                          final confirmPass = _confirmPasswordController.text
+                              .trim();
+
+                          if (user.isEmpty ||
+                              email.isEmpty ||
+                              pass.isEmpty ||
+                              displayName.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Vui lòng điền đủ thông tin!'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (pass.length < 6) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Mật khẩu tối thiểu 6 ký tự'),
+                              ),
+                            );
+                          }
+
+                          if (pass != confirmPass) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Mật khẩu xác nhận không khớp!'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          final success = await ref
+                              .read(authNotifierProvider.notifier)
+                              .register(user, pass, email, displayName);
+
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Đăng ký thành công! Hãy đăng nhập.',
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            Navigator.pop(context);
+                          } else if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Đăng ký thất bại. Lỗi hệ thống'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         },
                   child: isLoading
                       ? const SizedBox(
