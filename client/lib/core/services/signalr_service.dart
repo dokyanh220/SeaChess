@@ -11,18 +11,32 @@ class SignalrService {
   Future<void> connect() async {
     final token = await _localStorageService.getToken();
 
+    final hubUrl = '${AppConstants.baseUrl.replaceAll('/api/', '')}/hubs/chess';
+
     _hubConnection = HubConnectionBuilder()
         .withUrl(
-          '${AppConstans.baseUrl.replaceAll('/api/', '')}/chesshub',
+          hubUrl,
           options: HttpConnectionOptions(
             accessTokenFactory: () async => token ?? '',
           ),
         )
+        .withAutomaticReconnect()
         .build();
+
+    await _hubConnection.start();
+    print("SignalR connected");
   }
 
   void onReceiveMove(Function(List<Object?>?) handler) {
     _hubConnection.on('ReceiveMove', handler);
+  }
+
+  void onMatchStarted(Function(List<Object?>?) handler) {
+    _hubConnection.on('MatchStarted', handler);
+  }
+
+  Future<void> findMatch() async {
+    await _hubConnection.invoke('FindMatch');
   }
 
   Future<void> makeMove(String move) async {

@@ -1,5 +1,6 @@
 import 'package:client/core/network/api_client.dart';
 import 'package:client/core/services/local_storage_service.dart';
+import 'package:client/core/services/signalr_service.dart';
 import 'package:client/data/repositories/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -56,4 +57,9 @@ class AuthNotifier extends StateNotifier<bool> {
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, bool>((ref) {
   final repository = ref.watch(authRepositoryProvider);
   return AuthNotifier(repository);
+});
+
+final signalRServiceProvider = Provider<SignalrService>((ref) {
+  final localStorage = ref.watch(localStorageProvider);
+  return SignalrService(localStorage);
 });

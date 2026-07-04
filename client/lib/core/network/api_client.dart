@@ -11,7 +11,7 @@ class ApiClient {
   ApiClient(this._localStorageService) {
     dio = Dio(
       BaseOptions(
-        baseUrl: AppContans.baseUrl,
+        baseUrl: AppConstants.baseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         headers: {
