@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using SeaChess.Application.DTOs.Match;
 using SeaChess.Application.Interfaces;
 using SeaChess.Domain.Entities;
-using SeaChess.Domain.Services;
 
 namespace SeaChess.API.Hubs
 {
@@ -12,12 +10,14 @@ namespace SeaChess.API.Hubs
     {
         private readonly IMatchMakingService _matchmaking;
         private readonly IGameStateService _gameState;
+        private readonly IUserRepository _userRepo;
         private const string INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-        public ChessHub(IMatchMakingService matchmaking, IGameStateService gameState)
+        public ChessHub(IMatchMakingService matchmaking, IGameStateService gameState, IUserRepository repository)
         {
             _matchmaking = matchmaking;
             _gameState = gameState;
+            _userRepo = repository;
         }
 
         public override async Task OnConnectedAsync()
@@ -40,41 +40,19 @@ namespace SeaChess.API.Hubs
         {
             var userId = Context.UserIdentifier;
             if (userId == null) return;
+            
+            if (!Guid.TryParse(userId, out Guid userGuid))
+            {
+                throw new HubException("UserId không hợp lệ");
+            }
 
-            // TODO: Ở phiên bản hoàn chỉnh, Elo sẽ được lấy từ Database qua IUserRepository
-            int playerElo = 1200;
+            var user = await _userRepo.GetByIdAsync(userGuid);
+
+            int playerElo = user != null ? user.Elo : 1000;
 
             await _matchmaking.JoinQueueAsync(userId, playerElo);
-            var opponentId = await _matchmaking.FindMatchAsync(userId, playerElo);
-
-            if (opponentId != null)
-            {
-                var matchId = Guid.NewGuid().ToString();
-
-                var isUserWhite = new Random().Next(2) == 0;
-
-                var matchState = new MatchState
-                {
-                    MatchID = matchId,
-                    WhitePlayerId = isUserWhite ? userId : opponentId,
-                    BlackPlayerId = isUserWhite ? opponentId : userId,  
-                    CurrentFen = INITIAL_FEN,
-                    StartTimeUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
-                };
-
-                await _gameState.SaveStateAsync(matchState);
-
-                var matchedPlayers = new List<string> { userId, opponentId };
-
-                await Clients.Users(matchedPlayers).SendAsync("MatchStarted", matchState);
-
-                await Groups.AddToGroupAsync(Context.ConnectionId, matchId);
-                // (Và phải gửi lệnh yêu cầu Client B cũng tự join vào Group này, hoặc Server tự dùng ID để gửi như code mẫu trên).
-            }
-            else
-            {
-                Console.WriteLine($"[Matchmaking] {userId} đang đợi đối thủ...");
-            }
+            
+            Console.WriteLine($"[Matchmaking] {userId}(elo: {playerElo}) đang ghép trận...");
         }
 
         public async Task CancelMatch() 

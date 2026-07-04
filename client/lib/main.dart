@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'presentation/screens/login_screen.dart';
+import 'presentation/screens/auth/login_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +25,7 @@ class SeaChessApp extends StatelessWidget {
         useMaterial3: true,
       ),
       // Tạm thời hiển thị một màn hình trống để xác nhận app chạy lên
-      home: const LoginScreen()
+      home: const LoginScreen(),
     );
   }
 }

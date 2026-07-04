@@ -1,4 +1,6 @@
 import 'package:client/presentation/providers/auth_providers.dart';
+import 'package:client/presentation/providers/game_providers.dart';
+import 'package:client/presentation/screens/game_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,12 +31,25 @@ class _lobbyScreenState extends ConsumerState<LobbyScreen> {
       print("[Client] kết nối thành công");
 
       signalR.onMatchStarted((args) {
-        print("[Client] Tìm thấy trận");
-        print("Data match: $args");
+        if (args == null || args.length < 3) return;
+        print("[Client] Ghép trận thành công");
+
+        final matchId = args[0].toString();
+        final initialFen = args[1].toString();
+        final color = args[2].toString();
+
+        ref
+            .read(matchStateProvider.notifier)
+            .initMatch(matchId, initialFen, color);
 
         setState(() => _isSearching = false);
 
-        // TODO: chuyển sang gamescreen
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const GameScreen()),
+          );
+        }
       });
     } catch (e) {
       print("[Client] Lỗi kết nối: $e");

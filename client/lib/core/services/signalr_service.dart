@@ -39,7 +39,15 @@ class SignalrService {
     await _hubConnection.invoke('FindMatch');
   }
 
-  Future<void> makeMove(String move) async {
-    await _hubConnection.invoke('MakeMove', args: [move]);
+  Future<void> makeMove(
+    String matchId,
+    String fromPosition,
+    String toPosition,
+    String promotionPiece,
+  ) async {
+    await _hubConnection.invoke(
+      'MakeMove',
+      args: [matchId, fromPosition, toPosition, promotionPiece],
+    );
   }
 }

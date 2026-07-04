@@ -1,6 +1,6 @@
 import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:client/presentation/screens/lobby_screen.dart';
-import 'package:client/presentation/screens/register_screen.dart';
+import 'package:client/presentation/screens/auth/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
