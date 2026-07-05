@@ -113,16 +113,7 @@ namespace SeaChess.Domain.Entities
                         }
                         
                         // Lấy ký hiệu quân cờ
-                        char pieceChar = piece.Type switch
-                        {
-                            PieceType.Pawn => 'p',
-                            PieceType.Knight => 'n',
-                            PieceType.Bishop => 'b',
-                            PieceType.Rook => 'r',
-                            PieceType.Queen => 'q',
-                            PieceType.King => 'k',
-                            _ => throw new ArgumentException("Loại quân cờ không hợp lệ")
-                        };
+                        char pieceChar = GetCharFromPieceType(piece.Type);
                         // Viết hoa nếu là quân Trắng, viết thường nếu là Đen
                         sb.Append(piece.Color == PieceColor.White ? char.ToUpper(pieceChar) : pieceChar);
                     }
@@ -151,6 +142,17 @@ namespace SeaChess.Domain.Entities
             // Ghép các thành phần lại với nhau bằng khoảng trắng
             return $"{sb} {activeColorStr} {castling} {enPassant} {HalfmoveClock} {FullmoveNumber}";
         }
+
+        private static char GetCharFromPieceType(PieceType pieceType) => pieceType switch
+        {
+            PieceType.Pawn => 'p',
+            PieceType.Knight => 'n',
+            PieceType.Bishop => 'b',
+            PieceType.Rook => 'r',
+            PieceType.Queen => 'q',
+            PieceType.King => 'k',
+            _ => throw new ArgumentException($"Loại quân cờ không hợp lệ: {pieceType}")
+        };
 
         private PieceType GetPieceTypeFromChar(char c) => char.ToLowerInvariant(c) switch
         {
