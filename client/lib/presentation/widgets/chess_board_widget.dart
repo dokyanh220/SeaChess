@@ -4,11 +4,13 @@ import 'package:flutter/widgets.dart';
 
 class ChessBoardWidget extends StatelessWidget {
   final String fen;
+  final String myColor;
   final Function(String from, String to)? onMove;
 
   const ChessBoardWidget({
     super.key,
     this.fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    this.myColor = 'white',
     this.onMove,
   });
 
@@ -29,6 +31,8 @@ class ChessBoardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final boardArray = FenParser.parseBoard(fen);
 
+    final bool isFlipped = myColor == 'black';
+
     return AspectRatio(
       aspectRatio: 1.0,
       child: Container(
@@ -44,10 +48,16 @@ class ChessBoardWidget extends StatelessWidget {
           itemBuilder: (context, index) {
             int row = index ~/ 8;
             int col = index % 8;
+            int logicalIndex = isFlipped
+                ? 63 - index
+                : index; // nếu quân đen lật ngược 63 - 0 hoặc 1 - 62(trắng)
+            int logicalRow = isFlipped ? 7 - row : row;
+            int logicalCol = isFlipped ? 7 - col : col;
             bool isLightSquare =
-                (row + col) % 2 == 0; // đánh dấu caro bằng 1 0 1 0
-            String piece = boardArray[index];
-            String squareName = _getSquareName(row, col);
+                (logicalRow + logicalCol) % 2 ==
+                0; // đánh dấu caro bằng 1 0 1 0
+            String piece = boardArray[logicalIndex];
+            String squareName = _getSquareName(logicalRow, logicalCol);
 
             return DragTarget<String>(
               onAcceptWithDetails: (details) {

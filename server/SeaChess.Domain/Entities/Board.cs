@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using SeaChess.Domain.Enums;
 using SeaChess.Domain.ValueObjects;
@@ -68,36 +69,90 @@ namespace SeaChess.Domain.Entities
             }
         }
 
-        public void MakeMove(Position from, Position to, PieceType? promotion = null)
+        public void MakeMove(Position from, Position to, string? promotion)
         {
-            // 1. Lấy quân cờ ở vị trí xuất phát
             if (Squares.TryGetValue(from, out var piece))
             {
-                // 2. Xóa ô cũ
                 Squares.Remove(from);
-                
-                // 3. Nếu có phong cấp (Promotion), đổi loại quân
-                if (promotion.HasValue) 
+                // Kiểm tra xem đây có thực sự là nước đi phong cấp hợp lệ không
+                bool isPawnPromotion = piece.Type == PieceType.Pawn && (to.Rank == 7 || to.Rank == 0);
+                if (isPawnPromotion && !string.IsNullOrWhiteSpace(promotion))
                 {
-                    piece = new Piece(piece.Color, promotion.Value);
+                    try
+                    {
+                        var newType = GetPieceTypeFromString(promotion);
+                        piece = new Piece(piece.Color, newType);
+                    }
+                    catch (ArgumentException)
+                    {
+                        Console.WriteLine($"[Board] Phong cấp không hợp lệ: {promotion}");
+                    }
                 }
-
-                // 4. Đặt vào ô mới (sẽ đè lên quân bị ăn nếu có)
                 Squares[to] = piece;
-
-                // TODO: Cập nhật thêm quyền Nhập thành (CastlingRights) 
-                // và mục tiêu Bắt qua đường (EnPassantTarget) tại đây
+                
+                // TODO: Cập nhật CastlingRights và EnPassantTarget tại đây
             }
         }
 
         public string ToFenString()
         {
-            // Thuật toán quét 8 hàng, đếm ô trống và nối các ký hiệu quân cờ (K, q, p, P...)
-            // Kết hợp với CastlingRights, EnPassantTarget, Halfmove, Fullmove.
-            return "chuỗi_fen_đã_được_tính_toán_hoàn_chỉnh"; 
+            var sb = new StringBuilder();
+            // 1. Quét 8 hàng từ 7 xuống 0 (từ hàng 8 xuống hàng 1 của bàn cờ)
+            for (int rank = 7; rank >= 0; rank--)
+            {
+                int emptyCount = 0;
+                for (int file = 0; file < 8; file++)
+                {
+                    var pos = new Position(file, rank);
+                    if (Squares.TryGetValue(pos, out var piece))
+                    {
+                        if (emptyCount > 0)
+                        {
+                            sb.Append(emptyCount);
+                            emptyCount = 0;
+                        }
+                        
+                        // Lấy ký hiệu quân cờ
+                        char pieceChar = piece.Type switch
+                        {
+                            PieceType.Pawn => 'p',
+                            PieceType.Knight => 'n',
+                            PieceType.Bishop => 'b',
+                            PieceType.Rook => 'r',
+                            PieceType.Queen => 'q',
+                            PieceType.King => 'k',
+                            _ => throw new ArgumentException("Loại quân cờ không hợp lệ")
+                        };
+                        // Viết hoa nếu là quân Trắng, viết thường nếu là Đen
+                        sb.Append(piece.Color == PieceColor.White ? char.ToUpper(pieceChar) : pieceChar);
+                    }
+                    else
+                    {
+                        emptyCount++;
+                    }
+                }
+                if (emptyCount > 0)
+                {
+                    sb.Append(emptyCount);
+                }
+                if (rank > 0)
+                {
+                    sb.Append('/');
+                }
+            }
+            // 2. Lượt đi tiếp theo (Đảo ngược ActiveColor vì nước đi hiện tại vừa được thực hiện)
+            string activeColorStr = ActiveColor == PieceColor.White ? "b" : "w";
+            // 3. Các thông số phụ (Castling, En Passant, Clocks)
+            string castling = CastlingRights;
+            string enPassant = EnPassantTarget != null 
+                ? $"{(char)('a' + EnPassantTarget.File)}{EnPassantTarget.Rank + 1}" 
+                : "-";
+                
+            // Ghép các thành phần lại với nhau bằng khoảng trắng
+            return $"{sb} {activeColorStr} {castling} {enPassant} {HalfmoveClock} {FullmoveNumber}";
         }
 
-        private PieceType GetPieceTypeFromChar(char c) => c switch
+        private PieceType GetPieceTypeFromChar(char c) => char.ToLowerInvariant(c) switch
         {
             'p' => PieceType.Pawn,
             'n' => PieceType.Knight,
@@ -107,6 +162,14 @@ namespace SeaChess.Domain.Entities
             'k' => PieceType.King,
             _ => throw new ArgumentException($"Ký tự quân cờ không hợp lệ: {c}")
         };
+
+        private PieceType GetPieceTypeFromString(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value) || value.Length != 1)
+                throw new ArgumentException($"Ký tự quân cờ không hợp lệ: {value}");
+
+            return GetPieceTypeFromChar(value[0]);
+        }
 
         private Position? ParseFenPosition(string fenPos)
         {

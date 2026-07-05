@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using SeaChess.API.Hubs;
+using SeaChess.Application.DTOs.Match;
 using StackExchange.Redis;
 
 namespace SeaChess.API.Workers
@@ -47,7 +49,18 @@ namespace SeaChess.API.Workers
 
                             _logger.LogInformation($"Ghép trận thành công: {p1} (Trắng) vs {p2} (Đen). MatchId: {matchId}");
 
-                            await db.StringSetAsync($"match_state:{matchId}", initialFen);
+                            var matchState = new MatchState
+                            {
+                                MatchID = matchId,
+                                WhitePlayerId = p1.ToString()!,
+                                BlackPlayerId = p2.ToString()!,
+                                CurrentFen = initialFen,
+                                StartTimeUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                            };
+
+                            string stateJson = JsonSerializer.Serialize(matchState);
+
+                            await db.StringSetAsync($"match_state:{matchId}", stateJson);
 
                             await _hubContext.Clients.User(p1.ToString()!)
                                 .SendAsync("MatchStarted", matchId, initialFen, "white", cancellationToken: stoppingToken);

@@ -44,6 +44,7 @@ class GameScreen extends ConsumerWidget {
             // Truyền chuỗi FEN mới nhất vào Widget
             child: ChessBoardWidget(
               fen: matchState.fen,
+              myColor: matchState.myColor,
               onMove: (from, to) {
                 final matchId = ref.read(matchStateProvider).matchId;
                 print("[Client: ${matchId}] đánh từ $from đến $to");

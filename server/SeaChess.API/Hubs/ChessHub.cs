@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SeaChess.Application.Interfaces;
 using SeaChess.Domain.Entities;
+using SeaChess.Domain.Enums;
+using SeaChess.Domain.Services;
+using SeaChess.Domain.ValueObjects;
 
 namespace SeaChess.API.Hubs
 {
@@ -65,8 +68,8 @@ namespace SeaChess.API.Hubs
             }
         }
 
-        public async Task MakeMove(string matchId, string fromPosition, string toPosition, string? promotionPiece)
-         {
+        public async Task MakeMove(string matchId, string fromPosition, string toPosition, string promotionPiece)
+        {
             var userId = Context.UserIdentifier;
             if (userId == null) return;
 
@@ -78,22 +81,36 @@ namespace SeaChess.API.Hubs
                 return;
             }
 
+            // Get playerColor
+            PieceColor playerColor;
+            playerColor = matchState.WhitePlayerId == userId ? PieceColor.White : PieceColor.Black;
+            if(userId != matchState.WhitePlayerId && userId != matchState.BlackPlayerId)
+            {
+                await Clients.Caller.SendAsync("Error", "Bạn đang không tham trận đấu này.");
+                return;
+            }
+
             // Load Core
-            Board board = new Board();
-            board.LoadFromFen(matchState.CurrentFen);
+            var board = new Board(matchState.CurrentFen);
+            var from = Position.Parse(fromPosition);
+            var to = Position.Parse(toPosition);
 
             // Validate bước đi
-            // var isLegalMove = GameStateAnalyzer.ValidateMove(board, userId, fromPosition, toPosition);
-            // if (!isLegalMove)
-            // {
-            //     await Clients.Caller.SendAsync("Error", "Nước đi không hợp lệ");
-            //     return;
-            // }
+            var isLegalMove = GameStateAnalyzer.ValidateMove(board, from, to, playerColor);
+            if (!isLegalMove)
+            {
+                await Clients.Caller.SendAsync("Error", "Nước đi không hợp lệ");
+                return;
+            }
+            
+            Console.WriteLine($"From: {from}");
+            Console.WriteLine($"To: {to}");
+
+            Console.WriteLine(board.Squares.ContainsKey(from));
 
             // Thực thi nước đi & Lấy FEN mới
-            // board.MakeMove(fromPosition, toPosition, promotionPiece);
-            // string newFen = board.ToFenString(); 
-            string newFen = "Demo"; // TODO: Thay bằng FEN thật từ Engine
+            board.MakeMove(from, to, promotionPiece);
+            string newFen = board.ToFenString(); 
 
             // Cập nhật redis
             matchState.CurrentFen = newFen;

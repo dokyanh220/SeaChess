@@ -1,5 +1,6 @@
 import 'package:client/core/constants/app_constants.dart';
 import 'package:client/core/services/local_storage_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 
 class SignalrService {
@@ -45,6 +46,9 @@ class SignalrService {
     String toPosition,
     String promotionPiece,
   ) async {
+    debugPrint(
+      'promotionPiece: $promotionPiece, type: ${promotionPiece.runtimeType}',
+    );
     await _hubConnection.invoke(
       'MakeMove',
       args: [matchId, fromPosition, toPosition, promotionPiece],
