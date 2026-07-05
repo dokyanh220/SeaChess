@@ -6,6 +6,13 @@ namespace SeaChess.Application.DTOs.Match
         public string WhitePlayerId { get; set; } = string.Empty;
         public string BlackPlayerId { get; set; } = string.Empty;
         public string CurrentFen { get; set; } = string.Empty;
-        public long StartTimeUnix { get; set; }
+        public string Status { get; set; } = "Playing";
+
+        // Quản lý thời gian
+        public double WhiteTimeLeftMs { get; set; } 
+        public double BlackTimeLeftMs { get; set; }
+
+        // Mốc thời gian đối chiếu
+        public DateTimeOffset LastMoveTime { get; set; }
     }
 }

@@ -6,14 +6,30 @@ class MatchState {
   final String matchId;
   final String fen;
   final String myColor;
+  final double whiteTimeMs;
+  final double blackTimeMs;
 
-  MatchState({this.matchId = '', this.fen = '', this.myColor = ''});
+  MatchState({
+    this.matchId = '',
+    this.fen = '',
+    this.myColor = '',
+    this.whiteTimeMs = 120000,
+    this.blackTimeMs = 120000,
+  });
 
-  MatchState coppyWith({String? matchId, String? fen, String? myColor}) {
+  MatchState coppyWith({
+    String? matchId,
+    String? fen,
+    String? myColor,
+    double? whiteTimeMs,
+    double? blackTimeMs,
+  }) {
     return MatchState(
       matchId: matchId ?? this.matchId,
       fen: fen ?? this.fen,
       myColor: myColor ?? this.myColor,
+      whiteTimeMs: whiteTimeMs ?? this.whiteTimeMs,
+      blackTimeMs: blackTimeMs ?? this.blackTimeMs,
     );
   }
 }
@@ -28,9 +44,15 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       final data = args[0] as Map<String, dynamic>;
       final newFen = data['newFen'] ?? data['NewFen'] ?? '';
 
+      final double? whiteTime = data['WhiteTimeLeftMs']?.toDouble();
+      final double? blackTime = data['BlackTimeLeftMs']?.toDouble();
+
       if (newFen.isNotEmpty) {
-        print("[StateNotifier] Đã update FEN mới vào Provider: $newFen");
-        updateFen(newFen);
+        state = state.coppyWith(
+          fen: newFen,
+          whiteTimeMs: whiteTime,
+          blackTimeMs: blackTime,
+        );
       }
     });
   }

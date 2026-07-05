@@ -1,5 +1,6 @@
 import 'package:client/core/network/api_client.dart';
 import 'package:client/core/services/local_storage_service.dart';
+import 'package:client/domain/models/UserProfileResponse.dart';
 
 class AuthRepository {
   final ApiClient _apiClient;
@@ -54,6 +55,19 @@ class AuthRepository {
     } catch (e) {
       print('Lỗi đăng nhập: $e');
       return false;
+    }
+  }
+
+  Future<UserProfile?> getMyProfile() async {
+    try {
+      final res = await _apiClient.dio.get('user/me');
+      if (res.statusCode == 200) {
+        return UserProfile.fromJson(res.data);
+      }
+      return null;
+    } catch (e) {
+      print('Lỗi lấy data user: $e');
+      return null;
     }
   }
 }

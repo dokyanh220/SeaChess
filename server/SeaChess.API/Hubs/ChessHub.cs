@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using SeaChess.Application.DTOs.Match;
 using SeaChess.Application.Interfaces;
 using SeaChess.Domain.Entities;
 using SeaChess.Domain.Enums;
@@ -82,11 +83,48 @@ namespace SeaChess.API.Hubs
             }
 
             // Get playerColor
-            PieceColor playerColor;
-            playerColor = matchState.WhitePlayerId == userId ? PieceColor.White : PieceColor.Black;
+            PieceColor playerColor = matchState.WhitePlayerId == userId ? PieceColor.White : PieceColor.Black;
+
             if(userId != matchState.WhitePlayerId && userId != matchState.BlackPlayerId)
             {
                 await Clients.Caller.SendAsync("Error", "Bạn đang không tham trận đấu này.");
+                return;
+            }
+
+            string[] fenParts = matchState.CurrentFen.Split(" ");
+            string currentTurn = fenParts.Length > 1 ? fenParts[1] : "w";
+
+            var now = DateTimeOffset.UtcNow;
+            double elapseMs = (now - matchState.LastMoveTime).TotalMicroseconds;
+
+            if (currentTurn == "w")
+            {
+                matchState.WhiteTimeLeftMs -= elapseMs;
+                if (matchState.WhiteTimeLeftMs <= 0)
+                {
+                    // Gọi hàm kết thúc game
+                    matchState.WhiteTimeLeftMs = 0;
+                }
+            }
+            else
+            {
+                matchState.BlackTimeLeftMs -= elapseMs;
+                if (matchState.WhiteTimeLeftMs <= 0)
+                {
+                    // Gọi hàm kết thúc game
+                    matchState.BlackTimeLeftMs = 0;
+                }
+            }
+
+            matchState.LastMoveTime = now; // reset cho next turn
+
+            bool isValidTurn = (playerColor == PieceColor.White && currentTurn == "w") ||
+                (playerColor == PieceColor.Black && currentTurn == "b");
+
+            if (!isValidTurn)
+            {
+                await Clients.Caller.SendAsync("Error", "Chưa đến lượt của bạn");
+                // gửi lại fen chuẩn để client xếp lại nếu user xếp sai (đã xử lý ở client, rảnh thì thêm)
                 return;
             }
 
@@ -102,18 +140,13 @@ namespace SeaChess.API.Hubs
                 await Clients.Caller.SendAsync("Error", "Nước đi không hợp lệ");
                 return;
             }
-            
-            Console.WriteLine($"From: {from}");
-            Console.WriteLine($"To: {to}");
-
-            Console.WriteLine(board.Squares.ContainsKey(from));
 
             // Thực thi nước đi & Lấy FEN mới
             board.MakeMove(from, to, promotionPiece);
             string newFen = board.ToFenString(); 
 
-            // Cập nhật redis
-            matchState.CurrentFen = newFen;
+            matchState.CurrentFen = newFen; // Cập nhật redis
+            
             await _gameState.SaveStateAsync(matchState);
 
             // Gửi nước đi cho cả 2 người chơi để cập nhật bàn cờ

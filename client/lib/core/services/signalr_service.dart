@@ -54,4 +54,8 @@ class SignalrService {
       args: [matchId, fromPosition, toPosition, promotionPiece],
     );
   }
+
+  Future<void> cancelMatch() async {
+    await _hubConnection.invoke('CancelMatch');
+  }
 }

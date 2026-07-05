@@ -1,6 +1,5 @@
 import 'package:client/domain/utils/fen_parser.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class ChessBoardWidget extends StatelessWidget {
   final String fen;
@@ -33,6 +32,12 @@ class ChessBoardWidget extends StatelessWidget {
 
     final bool isFlipped = myColor == 'black';
 
+    List<String> fenParts = fen.split(' ');
+    String currentTurn = fenParts.length > 1 ? fenParts[1] : 'w';
+    bool isMyTurn =
+        (myColor == 'white' && currentTurn == 'w') ||
+        (myColor == 'black' && currentTurn == 'b');
+
     return AspectRatio(
       aspectRatio: 1.0,
       child: Container(
@@ -58,6 +63,14 @@ class ChessBoardWidget extends StatelessWidget {
                 0; // đánh dấu caro bằng 1 0 1 0
             String piece = boardArray[logicalIndex];
             String squareName = _getSquareName(logicalRow, logicalCol);
+
+            // Validate lượt đi khóa draggable
+            bool isMyPiece =
+                piece.isNotEmpty &&
+                ((myColor == 'white' && piece == piece.toUpperCase()) ||
+                    (myColor == 'black' && piece == piece.toLowerCase()));
+
+            bool canDrag = isMyTurn && isMyPiece;
 
             return DragTarget<String>(
               onAcceptWithDetails: (details) {

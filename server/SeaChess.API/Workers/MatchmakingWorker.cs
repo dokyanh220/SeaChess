@@ -49,13 +49,17 @@ namespace SeaChess.API.Workers
 
                             _logger.LogInformation($"Ghép trận thành công: {p1} (Trắng) vs {p2} (Đen). MatchId: {matchId}");
 
+                            const double initialTimeMs = 20 * 60 * 1000; // 120000s | 20 phút
                             var matchState = new MatchState
                             {
                                 MatchID = matchId,
                                 WhitePlayerId = p1.ToString()!,
                                 BlackPlayerId = p2.ToString()!,
                                 CurrentFen = initialFen,
-                                StartTimeUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                                Status = "Playing",
+                                WhiteTimeLeftMs = initialTimeMs,
+                                BlackTimeLeftMs = initialTimeMs,
+                                LastMoveTime = DateTimeOffset.UtcNow,
                             };
 
                             string stateJson = JsonSerializer.Serialize(matchState);

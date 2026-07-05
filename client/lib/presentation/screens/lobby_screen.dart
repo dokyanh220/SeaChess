@@ -60,49 +60,153 @@ class _lobbyScreenState extends ConsumerState<LobbyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Lấy dữ liệu profile từ Provider
+    final profileAsync = ref.watch(userProfileProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Sảnh Chờ Tạm'), centerTitle: true),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (_isConnecting)
-              const CircularProgressIndicator()
-            else
-              const Text(
-                'SignalR đã sẵn sàng',
-                style: TextStyle(color: Colors.green, fontSize: 18),
+      appBar: AppBar(title: const Text('SeaChess'), centerTitle: true),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // ========== PHẦN 1: CARD THÔNG TIN CÁ NHÂN ==========
+              profileAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Text('Lỗi tải profile: $err'),
+                data: (profile) {
+                  if (profile == null) {
+                    return const Text('Không tìm thấy thông tin');
+                  }
+                  return Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          // Avatar + Tên
+                          const CircleAvatar(
+                            radius: 36,
+                            child: Icon(Icons.person, size: 40),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            profile.displayName,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          // Row hiển thị Level, Elo, Rank
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildStatItem('Level', '${profile.level}'),
+                              _buildStatItem('Elo', '${profile.elo}'),
+                              _buildStatItem('Rank', profile.rank),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-            const SizedBox(height: 16),
-            const Text(
-              'Đăng nhập thành công!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 20,
+              const Spacer(), // Đẩy nút xuống phía dưới
+              // ========== PHẦN 2: TRẠNG THÁI KẾT NỐI ==========
+              if (_isConnecting)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 8),
+                      Text('Đang kết nối Server...'),
+                    ],
+                  ),
                 ),
-                backgroundColor: _isSearching ? Colors.orange : Colors.blue,
-              ),
-              onPressed: _isConnecting || _isSearching
-                  ? null
-                  : () async {
-                      setState(() => _isSearching = true);
-                      print("[Client] Đang gửi yêu cầu tìm trận...");
-
-                      await ref.read(signalRServiceProvider).findMatch();
+              // ========== PHẦN 3: NÚT TÌM TRẬN / HỦY ==========
+              if (_isSearching) ...[
+                const Text(
+                  'Đang tìm đối thủ...',
+                  style: TextStyle(fontSize: 16, color: Colors.orange),
+                ),
+                const SizedBox(height: 12),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                // Nút hủy tìm trận
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () async {
+                      await ref.read(signalRServiceProvider).cancelMatch();
+                      setState(() => _isSearching = false);
                     },
-              child: Text(
-                _isSearching ? 'Đang tìm đối thủ...' : 'Chơi',
-                style: const TextStyle(fontSize: 20, color: Colors.white),
-              ),
-            ),
-          ],
+                    child: const Text(
+                      'Hủy tìm trận',
+                      style: TextStyle(fontSize: 18, color: Colors.red),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                // Nút tìm trận
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _isConnecting
+                        ? null
+                        : () async {
+                            setState(() => _isSearching = true);
+                            await ref.read(signalRServiceProvider).findMatch();
+                          },
+                    child: const Text(
+                      'Tìm trận',
+                      style: TextStyle(fontSize: 20, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  // Widget helper hiển thị từng chỉ số (Level, Elo, Rank)
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+      ],
     );
   }
 }

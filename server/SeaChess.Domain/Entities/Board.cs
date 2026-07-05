@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -90,6 +90,29 @@ namespace SeaChess.Domain.Entities
                 }
                 Squares[to] = piece;
                 
+                // Xử lý nước đi nhập thành (di chuyển Xe)
+                if (piece.Type == PieceType.King && Math.Abs(from.File - to.File) == 2)
+                {
+                    if (to.File == 6) // Nhập thành gần (King-side)
+                    {
+                        var rookPos = new Position(7, from.Rank);
+                        if (Squares.TryGetValue(rookPos, out var rook))
+                        {
+                            Squares.Remove(rookPos);
+                            Squares[new Position(5, from.Rank)] = rook;
+                        }
+                    }
+                    else if (to.File == 2) // Nhập thành xa (Queen-side)
+                    {
+                        var rookPos = new Position(0, from.Rank);
+                        if (Squares.TryGetValue(rookPos, out var rook))
+                        {
+                            Squares.Remove(rookPos);
+                            Squares[new Position(3, from.Rank)] = rook;
+                        }
+                    }
+                }
+
                 // TODO: Cập nhật CastlingRights và EnPassantTarget tại đây
             }
         }

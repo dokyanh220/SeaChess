@@ -13,7 +13,7 @@ namespace SeaChess.Domain.Services
         private static readonly (int, int)[] DiagonalDirections = { (1, 1), (1, -1), (-1, 1), (-1, -1) };
 
         // Hướng chữ L của mã
-        private static readonly (int, int)[] KnightMoves = { (1, 2), (2, 1), (2, -1), (1, -2), (-2, -1), (-2, 1), (-1, 2) };
+        private static readonly (int, int)[] KnightMoves = { (1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2) };
 
         // Hướng của vua 1 ô mọi hướng
         private static readonly (int, int)[] KingMoves = { (0, 1), (0, -1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1) };
