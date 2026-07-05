@@ -1,3 +1,5 @@
+import 'package:client/core/services/signalr_service.dart';
+import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 class MatchState {
@@ -17,7 +19,21 @@ class MatchState {
 }
 
 class MatchStateNotifier extends StateNotifier<MatchState> {
-  MatchStateNotifier() : super(MatchState());
+  final SignalrService _signalR;
+
+  MatchStateNotifier(this._signalR) : super(MatchState()) {
+    _signalR.onReceiveMove((args) {
+      if (args == null || args.isEmpty) return;
+
+      final data = args[0] as Map<String, dynamic>;
+      final newFen = data['newFen'] ?? data['NewFen'] ?? '';
+
+      if (newFen.isNotEmpty) {
+        print("[StateNotifier] Đã update FEN mới vào Provider: $newFen");
+        updateFen(newFen);
+      }
+    });
+  }
 
   void initMatch(String id, String fen, String color) {
     state = MatchState(matchId: id, fen: fen, myColor: color);
@@ -30,5 +46,6 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
 
 final matchStateProvider =
     StateNotifierProvider<MatchStateNotifier, MatchState>((ref) {
-      return MatchStateNotifier();
+      final signalR = ref.watch(signalRServiceProvider);
+      return MatchStateNotifier(signalR);
     });

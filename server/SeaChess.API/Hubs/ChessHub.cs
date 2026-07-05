@@ -116,10 +116,10 @@ namespace SeaChess.API.Hubs
             matchState.CurrentFen = newFen;
             await _gameState.SaveStateAsync(matchState);
 
-            // Người chơi còn lại thấy nước đi
+            // Gửi nước đi cho cả 2 người chơi để cập nhật bàn cờ
             var opponentId = matchState.WhitePlayerId == userId ? matchState.BlackPlayerId : matchState.WhitePlayerId;
 
-            await Clients.User(opponentId).SendAsync("ReceiveMove", new 
+            await Clients.Users(new[] { userId, opponentId }).SendAsync("ReceiveMove", new 
             {
                 From = fromPosition,
                 To = toPosition,

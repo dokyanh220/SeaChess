@@ -51,18 +51,6 @@ class _lobbyScreenState extends ConsumerState<LobbyScreen> {
           );
         }
       });
-
-      signalR.onReceiveMove((args) {
-        if (args == null || args.isEmpty) return;
-
-        final data = args[0] as Map<String, dynamic>;
-        final newFen = data['newFen'].toString();
-
-        print("[Client] Nhận nước đi mới, FEN: $newFen");
-
-        // Cập nhật FEN vào state để Re-build bàn cờ
-        ref.read(matchStateProvider.notifier).updateFen(newFen);
-      });
     } catch (e) {
       print("[Client] Lỗi kết nối: $e");
     } finally {
