@@ -154,7 +154,7 @@ namespace SeaChess.Domain.Entities
             _ => throw new ArgumentException($"Loại quân cờ không hợp lệ: {pieceType}")
         };
 
-        private PieceType GetPieceTypeFromChar(char c) => char.ToLowerInvariant(c) switch
+        private static PieceType GetPieceTypeFromChar(char c) => char.ToLowerInvariant(c) switch
         {
             'p' => PieceType.Pawn,
             'n' => PieceType.Knight,
@@ -165,7 +165,7 @@ namespace SeaChess.Domain.Entities
             _ => throw new ArgumentException($"Ký tự quân cờ không hợp lệ: {c}")
         };
 
-        private PieceType GetPieceTypeFromString(string value)
+        private static PieceType GetPieceTypeFromString(string value)
         {
             if (string.IsNullOrWhiteSpace(value) || value.Length != 1)
                 throw new ArgumentException($"Ký tự quân cờ không hợp lệ: {value}");
