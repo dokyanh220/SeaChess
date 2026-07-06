@@ -1,3 +1,4 @@
+import 'package:client/core/services/audio_service.dart';
 import 'package:client/core/services/signalr_service.dart';
 import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -8,6 +9,14 @@ class MatchState {
   final String myColor;
   final double whiteTimeMs;
   final double blackTimeMs;
+  final bool isInCheck;
+  final String kingInCheckSquare;
+  final List<String> attackerSquares;
+  final bool isGameOver;
+  final String gameResult;
+  final String gameReason;
+  final int eloChange;
+  final int newElo;
 
   MatchState({
     this.matchId = '',
@@ -15,6 +24,14 @@ class MatchState {
     this.myColor = '',
     this.whiteTimeMs = 120000,
     this.blackTimeMs = 120000,
+    this.isInCheck = false,
+    this.kingInCheckSquare = '',
+    this.attackerSquares = const [],
+    this.isGameOver = false,
+    this.gameResult = '',
+    this.gameReason = '',
+    this.eloChange = 0,
+    this.newElo = 0,
   });
 
   MatchState coppyWith({
@@ -23,6 +40,14 @@ class MatchState {
     String? myColor,
     double? whiteTimeMs,
     double? blackTimeMs,
+    bool? isInCheck,
+    String? kingInCheckSquare,
+    List<String>? attackerSquares,
+    bool? isGameOver,
+    String? gameResult,
+    String? gameReason,
+    int? eloChange,
+    int? newElo,
   }) {
     return MatchState(
       matchId: matchId ?? this.matchId,
@@ -30,30 +55,71 @@ class MatchState {
       myColor: myColor ?? this.myColor,
       whiteTimeMs: whiteTimeMs ?? this.whiteTimeMs,
       blackTimeMs: blackTimeMs ?? this.blackTimeMs,
+      isInCheck: isInCheck ?? this.isInCheck,
+      kingInCheckSquare: kingInCheckSquare ?? this.kingInCheckSquare,
+      attackerSquares: attackerSquares ?? this.attackerSquares,
+      isGameOver: isGameOver ?? this.isGameOver,
+      gameResult: gameResult ?? this.gameResult,
+      gameReason: gameReason ?? this.gameReason,
+      eloChange: eloChange ?? this.eloChange,
+      newElo: newElo ?? this.newElo,
     );
   }
 }
 
 class MatchStateNotifier extends StateNotifier<MatchState> {
   final SignalrService _signalR;
+  final AudioService _audioService;
 
-  MatchStateNotifier(this._signalR) : super(MatchState()) {
+  MatchStateNotifier(this._signalR, this._audioService) : super(MatchState()) {
+    _audioService.init(); // Khởi tạo âm thanh sẵn
+
     _signalR.onReceiveMove((args) {
       if (args == null || args.isEmpty) return;
 
       final data = args[0] as Map<String, dynamic>;
       final newFen = data['newFen'] ?? data['NewFen'] ?? '';
 
-      final double? whiteTime = data['WhiteTimeLeftMs']?.toDouble();
-      final double? blackTime = data['BlackTimeLeftMs']?.toDouble();
+      final double? whiteTime = (data['WhiteTimeLeftMs'] ?? data['whiteTimeLeftMs'])?.toDouble();
+      final double? blackTime = (data['BlackTimeLeftMs'] ?? data['blackTimeLeftMs'])?.toDouble();
+
+      final bool? isCheck = data['IsInCheck'] ?? data['isInCheck'] ?? false;
+      final String kingSquare = data['KingSquare'] ?? data['kingSquare'] ?? '';
+      final List<dynamic> attackersRaw = data['AttackerSquares'] ?? data['attackerSquares'] ?? [];
+      final List<String> attackers = attackersRaw.map((e) => e.toString()).toList();
 
       if (newFen.isNotEmpty) {
         state = state.coppyWith(
           fen: newFen,
           whiteTimeMs: whiteTime,
           blackTimeMs: blackTime,
+          isInCheck: isCheck,
+          kingInCheckSquare: kingSquare,
+          attackerSquares: attackers,
         );
+
+        // Phát âm thanh chiếu hoặc âm thanh đi cờ bình thường
+        if (isCheck == true) {
+          _audioService.playCheckSound();
+        } else {
+          _audioService.playMoveSound();
+        }
       }
+    });
+
+    _signalR.onGameOver((args) {
+      if (args == null || args.isEmpty) return;
+      final data = args[0] as Map<String, dynamic>;
+
+      state = state.coppyWith(
+        isGameOver: true,
+        gameResult: data['result'] ?? data['Result'] ?? '',
+        gameReason: data['reason'] ?? data['Reason'] ?? '',
+        eloChange: (data['eloChange'] ?? data['EloChange'] ?? 0).toInt(),
+        newElo: (data['newElo'] ?? data['NewElo'] ?? 0).toInt(),
+      );
+
+      _audioService.playGameOverSound();
     });
   }
 
@@ -69,5 +135,6 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
 final matchStateProvider =
     StateNotifierProvider<MatchStateNotifier, MatchState>((ref) {
       final signalR = ref.watch(signalRServiceProvider);
-      return MatchStateNotifier(signalR);
+      final audio = ref.watch(audioServiceProvider);
+      return MatchStateNotifier(signalR, audio);
     });

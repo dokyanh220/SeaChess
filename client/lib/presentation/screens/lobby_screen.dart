@@ -45,7 +45,7 @@ class _lobbyScreenState extends ConsumerState<LobbyScreen> {
         setState(() => _isSearching = false);
 
         if (mounted) {
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const GameScreen()),
           );

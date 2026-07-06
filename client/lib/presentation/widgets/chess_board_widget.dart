@@ -1,17 +1,48 @@
 import 'package:client/domain/utils/fen_parser.dart';
 import 'package:flutter/material.dart';
 
-class ChessBoardWidget extends StatelessWidget {
+class ChessBoardWidget extends StatefulWidget {
   final String fen;
   final String myColor;
+  final String kingInCheckSquare;
+  final List<String> attackerSquares;
   final Function(String from, String to)? onMove;
 
   const ChessBoardWidget({
     super.key,
     this.fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     this.myColor = 'white',
+    this.kingInCheckSquare = '',
+    this.attackerSquares = const [],
     this.onMove,
   });
+
+  @override
+  State<ChessBoardWidget> createState() => _ChessBoardWidgetState();
+}
+
+class _ChessBoardWidgetState extends State<ChessBoardWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _blinkAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..repeat(reverse: true);
+    _blinkAnimation = Tween<double>(begin: 0.0, end: 0.6).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   String _getPieceAssetPath(String pieceChar) {
     bool isWhite = pieceChar == pieceChar.toUpperCase();
@@ -28,15 +59,15 @@ class ChessBoardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final boardArray = FenParser.parseBoard(fen);
+    final boardArray = FenParser.parseBoard(widget.fen);
 
-    final bool isFlipped = myColor == 'black';
+    final bool isFlipped = widget.myColor == 'black';
 
-    List<String> fenParts = fen.split(' ');
+    List<String> fenParts = widget.fen.split(' ');
     String currentTurn = fenParts.length > 1 ? fenParts[1] : 'w';
     bool isMyTurn =
-        (myColor == 'white' && currentTurn == 'w') ||
-        (myColor == 'black' && currentTurn == 'b');
+        (widget.myColor == 'white' && currentTurn == 'w') ||
+        (widget.myColor == 'black' && currentTurn == 'b');
 
     return AspectRatio(
       aspectRatio: 1.0,
@@ -58,51 +89,116 @@ class ChessBoardWidget extends StatelessWidget {
                 : index; // nếu quân đen lật ngược 63 - 0 hoặc 1 - 62(trắng)
             int logicalRow = isFlipped ? 7 - row : row;
             int logicalCol = isFlipped ? 7 - col : col;
-            bool isLightSquare =
-                (logicalRow + logicalCol) % 2 ==
-                0; // đánh dấu caro bằng 1 0 1 0
+            bool isLightSquare = (logicalRow + logicalCol) % 2 == 0;
             String piece = boardArray[logicalIndex];
             String squareName = _getSquareName(logicalRow, logicalCol);
 
-            // Validate lượt đi khóa draggable
-            bool isMyPiece =
-                piece.isNotEmpty &&
-                ((myColor == 'white' && piece == piece.toUpperCase()) ||
-                    (myColor == 'black' && piece == piece.toLowerCase()));
+            bool isCheckSquare = widget.kingInCheckSquare == squareName ||
+                widget.attackerSquares.contains(squareName);
+
+            bool isMyPiece = piece.isNotEmpty &&
+                ((widget.myColor == 'white' && piece == piece.toUpperCase()) ||
+                    (widget.myColor == 'black' && piece == piece.toLowerCase()));
 
             bool canDrag = isMyTurn && isMyPiece;
+
+            Color baseColor = isLightSquare ? const Color(0xFFF0D9B5) : const Color(0xFFB58863);
+            Color coordColor = isLightSquare ? const Color(0xFFB58863) : const Color(0xFFF0D9B5);
+
+            // Xây dựng widget hiển thị quân cờ lớn hơn (Padding = 0 hoặc nhỏ lại)
+            Widget pieceWidget = piece.isNotEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(2.0), // Giảm padding để quân cờ to hơn
+                    child: Image.asset(_getPieceAssetPath(piece)),
+                  )
+                : const SizedBox.shrink();
+
+            if (piece.isNotEmpty && canDrag) {
+              pieceWidget = Draggable<String>(
+                data: squareName,
+                feedback: Material(
+                  color: Colors.transparent,
+                  child: SizedBox(
+                    width: 70, // Cho dragging feedback to hơn một chút
+                    height: 70,
+                    child: Image.asset(_getPieceAssetPath(piece)),
+                  ),
+                ),
+                childWhenDragging: Opacity(
+                  opacity: 0.3,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.0),
+                    child: Image.asset(_getPieceAssetPath(piece)),
+                  ),
+                ),
+                child: pieceWidget,
+              );
+            }
+
+            // Xây dựng background có animate nếu bị chiếu
+            Widget backgroundWidget = Container(color: baseColor);
+            if (isCheckSquare) {
+              backgroundWidget = AnimatedBuilder(
+                animation: _blinkAnimation,
+                builder: (context, child) {
+                  return Stack(
+                    children: [
+                      Container(color: baseColor),
+                      Container(color: Colors.red.withOpacity(_blinkAnimation.value)),
+                    ],
+                  );
+                },
+              );
+            }
 
             return DragTarget<String>(
               onAcceptWithDetails: (details) {
                 final fromSquare = details.data;
-                final toSquare = squareName;
-
-                if (fromSquare != toSquare && onMove != null) {
-                  onMove!(fromSquare, toSquare); // bắn sk
+                if (fromSquare != squareName && widget.onMove != null) {
+                  widget.onMove!(fromSquare, squareName);
                 }
               },
               builder: (context, candidateData, rejectData) {
-                return Container(
-                  color: isLightSquare
-                      ? const Color(0xFFF0D9B5)
-                      : const Color(0xFFB58863), // Màu ô cờ bàn
-                  child: piece.isNotEmpty
-                      ? Draggable<String>(
-                          data: squareName,
-                          feedback: Material(
-                            color: Colors.transparent,
-                            child: SizedBox(
-                              width: 60,
-                              height: 60,
-                              child: Image.asset(_getPieceAssetPath(piece)),
-                            ),
+                return Stack(
+                  children: [
+                    // 1. Lớp background (Bao gồm màu ô và nhấp nháy đỏ)
+                    Positioned.fill(child: backgroundWidget),
+
+                    // 2. Tọa độ số (cột trái)
+                    if (col == 0)
+                      Positioned(
+                        top: 2,
+                        left: 4,
+                        child: Text(
+                          (8 - logicalRow).toString(),
+                          style: TextStyle(
+                            color: coordColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: Image.asset(_getPieceAssetPath(piece)),
+                        ),
+                      ),
+
+                    // 3. Tọa độ chữ (hàng dưới)
+                    if (row == 7)
+                      Positioned(
+                        bottom: 2,
+                        right: 4,
+                        child: Text(
+                          String.fromCharCode(97 + logicalCol),
+                          style: TextStyle(
+                            color: coordColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
                           ),
-                        )
-                      : null, // Không có quân thì rỗng
+                        ),
+                      ),
+
+                    // 4. Lớp quân cờ ở trên cùng để không bị block Drag
+                    Positioned.fill(
+                      child: Center(child: pieceWidget),
+                    ),
+                  ],
                 );
               },
             );

@@ -5,13 +5,26 @@ import 'package:client/presentation/widgets/chess_time_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class GameScreen extends ConsumerWidget {
+class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
+  @override
+  ConsumerState<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends ConsumerState<GameScreen> {
+  bool _dialogShown = false;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     // Theo dõi trạng thái ván cờ liên tục
     final matchState = ref.watch(matchStateProvider);
+
+    ref.listen<MatchState>(matchStateProvider, (prev, next) {
+      if (next.isGameOver && !_dialogShown) {
+        _dialogShown = true;
+        _showGameOverDialog(context, next);
+      }
+    });
 
     List<String> fenParts = matchState.fen.split(' ');
     String currentTurn = fenParts.length > 1 ? fenParts[1] : 'w';
@@ -35,6 +48,7 @@ class GameScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -46,7 +60,10 @@ class GameScreen extends ConsumerWidget {
                   children: [
                     const Text(
                       'Đối thủ',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     // Đồng hồ của đối thủ
                     ChessTimerWidget(
@@ -65,6 +82,8 @@ class GameScreen extends ConsumerWidget {
                 child: ChessBoardWidget(
                   fen: matchState.fen,
                   myColor: matchState.myColor,
+                  kingInCheckSquare: matchState.isInCheck ? matchState.kingInCheckSquare : '',
+                  attackerSquares: matchState.isInCheck ? matchState.attackerSquares : const [],
                   onMove: (from, to) {
                     final matchId = ref.read(matchStateProvider).matchId;
                     print("[Client: ${matchId}] đánh từ $from đến $to");
@@ -102,22 +121,91 @@ class GameScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              // Thông báo đến lượt cho sinh động
-              if (isMyTurn)
-                const Padding(
-                  padding: EdgeInsets.only(top: 16.0),
-                  child: Text(
-                    "Đến lượt của bạn!",
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showGameOverDialog(BuildContext context, MatchState state) {
+    String title;
+    Color titleColor;
+    IconData icon;
+    switch (state.gameResult) {
+      case 'win':
+        title = 'Chiến Thắng! 🎉';
+        titleColor = Colors.green;
+        icon = Icons.emoji_events;
+        break;
+      case 'lose':
+        title = 'Thất Bại 😢';
+        titleColor = Colors.red;
+        icon = Icons.sentiment_dissatisfied;
+        break;
+      default:
+        title = 'Hòa Cờ 🤝';
+        titleColor = Colors.orange;
+        icon = Icons.handshake;
+    }
+    // Chuyển reason sang tiếng Việt
+    String reasonText = switch (state.gameReason) {
+      'Checkmate' => 'Chiếu bí',
+      'Timeout' => 'Hết giờ',
+      'Resign' => 'Đầu hàng',
+      'Stalemate' => 'Hết nước đi (Hòa)',
+      'FiftyMoveRule' => 'Luật 50 nước (Hòa)',
+      _ => state.gameReason,
+    };
+    String eloText = state.eloChange >= 0
+        ? '+${state.eloChange}'
+        : '${state.eloChange}';
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Bắt buộc bấm nút
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(icon, color: titleColor, size: 32),
+            const SizedBox(width: 8),
+            Text(title, style: TextStyle(color: titleColor)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Lý do: $reasonText', style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text('Elo: ', style: TextStyle(fontSize: 16)),
+                Text(
+                  eloText,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: state.eloChange >= 0 ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Elo hiện tại: ${state.newElo}',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Đóng dialog
+              Navigator.of(context).pop(); // Quay về Lobby
+            },
+            child: const Text('Về Sảnh Chờ'),
+          ),
+        ],
       ),
     );
   }

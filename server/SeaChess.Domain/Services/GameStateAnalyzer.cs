@@ -6,8 +6,8 @@ namespace SeaChess.Domain.Services
 {
     public class GameStateAnalyzer
     {
-        // Check chiếu
-        public static bool IsInCheck(Board board, PieceColor color)
+        // Check chiếu và trả về thông tin chi tiết
+        public static (bool IsCheck, Position? KingPosition, List<Position> AttackerPositions) GetCheckInfo(Board board, PieceColor color)
         {
             Position? kingPosition = null;
 
@@ -20,9 +20,10 @@ namespace SeaChess.Domain.Services
                 }
             }
 
-            if (kingPosition == null) return false;
+            if (kingPosition == null) return (false, null, new List<Position>());
 
             PieceColor opponetColor = color == PieceColor.White ? PieceColor.Black : PieceColor.White;
+            var attackers = new List<Position>();
 
             foreach (var square in board.Squares)
             {
@@ -31,12 +32,17 @@ namespace SeaChess.Domain.Services
                     var opponetMoves = MoveGenerator.GetPseudoLegalMoves(board, square.Key);
                     if (opponetMoves.Any(m => m.To == kingPosition))
                     {
-                        return true;
+                        attackers.Add(square.Key);
                     }
                 }
             }
 
-            return false;
+            return (attackers.Count > 0, kingPosition, attackers);
+        }
+
+        public static bool IsInCheck(Board board, PieceColor color)
+        {
+            return GetCheckInfo(board, color).IsCheck;
         }
 
         // Check nước đi của đối thủ(vua không bị chiếu)
@@ -50,7 +56,14 @@ namespace SeaChess.Domain.Services
                 
                 foreach (var move in pseudoMoves)
                 {
-                    legalMoves.Add(move);
+                    // Đi thử
+                    var cloneBoard = new Board(board.ToFenString());
+                    cloneBoard.MakeMove(move.From, move.To, null);
+
+                    if (!IsInCheck(cloneBoard, color))
+                    {
+                        legalMoves.Add(move);
+                    }
                 }
             }
 
@@ -88,7 +101,5 @@ namespace SeaChess.Domain.Services
         {
             return board.HalfmoveClock >= 100;
         }
-        
-        // Todo: Đi thử
     }
 }

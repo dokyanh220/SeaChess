@@ -96,24 +96,28 @@ namespace SeaChess.API.Hubs
             string currentTurn = fenParts.Length > 1 ? fenParts[1] : "w";
 
             var now = DateTimeOffset.UtcNow;
-            double elapseMs = (now - matchState.LastMoveTime).TotalMicroseconds;
+            double elapseMs = (now - matchState.LastMoveTime).TotalMilliseconds;
 
             if (currentTurn == "w")
             {
                 matchState.WhiteTimeLeftMs -= elapseMs;
                 if (matchState.WhiteTimeLeftMs <= 0)
                 {
-                    // Gọi hàm kết thúc game
                     matchState.WhiteTimeLeftMs = 0;
+
+                    await EndGame(matchState, matchState.BlackPlayerId, "Timeout");
+                    return;
                 }
             }
             else
             {
                 matchState.BlackTimeLeftMs -= elapseMs;
-                if (matchState.WhiteTimeLeftMs <= 0)
+                if (matchState.BlackTimeLeftMs <= 0)
                 {
-                    // Gọi hàm kết thúc game
                     matchState.BlackTimeLeftMs = 0;
+
+                    await EndGame(matchState, matchState.WhitePlayerId, "Timeout");
+                    return;
                 }
             }
 
@@ -146,6 +150,13 @@ namespace SeaChess.API.Hubs
             board.MakeMove(from, to, promotionPiece);
             string newFen = board.ToFenString(); 
 
+            // Kiểm tra kết thúc trận
+            PieceColor nextTurnColor = playerColor == PieceColor.White 
+                ? PieceColor.Black 
+                : PieceColor.White;
+            
+            var checkInfo = GameStateAnalyzer.GetCheckInfo(board, nextTurnColor);
+
             matchState.CurrentFen = newFen; // Cập nhật redis
 
             await _gameState.SaveStateAsync(matchState);
@@ -157,17 +168,29 @@ namespace SeaChess.API.Hubs
                 Promotion = promotionPiece,
                 NewFen = newFen,
                 WhiteTimeLeftMs = matchState.WhiteTimeLeftMs,
-                BlackTimeLeftMs = matchState.BlackTimeLeftMs
+                BlackTimeLeftMs = matchState.BlackTimeLeftMs,
+                IsInCheck = checkInfo.IsCheck,
+                KingSquare = checkInfo.KingPosition?.ToString(),
+                AttackerSquares = checkInfo.AttackerPositions.Select(p => p.ToString()).ToList()
             });
-
-            // Kiểm tra kết thúc trận
-            PieceColor nextTurnColor = playerColor == PieceColor.White 
-                ? PieceColor.Black 
-                : PieceColor.White;
 
             if (GameStateAnalyzer.IsCheckmate(board, nextTurnColor))
             {
-                
+                string winnerId = userId;
+                await EndGame(matchState, winnerId, "Checkmate");
+                return;
+            }
+
+            if (GameStateAnalyzer.IsStalemate(board, nextTurnColor))
+            {
+                await EndGame(matchState, null, "Stalemate");
+                return;
+            }
+
+            if (GameStateAnalyzer.IsFiftyMoveRule(board))
+            {
+                await EndGame(matchState, null, "FiftyMoveRule");
+                return;
             }
         }
 

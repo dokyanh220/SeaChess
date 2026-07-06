@@ -36,6 +36,10 @@ class SignalrService {
     _hubConnection.on('MatchStarted', handler);
   }
 
+  void onGameOver(Function(List<Object?>?) handler) {
+    _hubConnection.on('GameOver', handler);
+  }
+
   Future<void> findMatch() async {
     await _hubConnection.invoke('FindMatch');
   }
@@ -57,5 +61,9 @@ class SignalrService {
 
   Future<void> cancelMatch() async {
     await _hubConnection.invoke('CancelMatch');
+  }
+
+  Future<void> resign(String matchId) async {
+    await _hubConnection.invoke('Resign', args: [matchId]);
   }
 }

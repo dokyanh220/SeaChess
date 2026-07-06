@@ -15,5 +15,6 @@ namespace SeaChess.Domain.ValueObjects
 
             return new Position(file, rank);
         }
+        public override string ToString() => $"{(char)('a' + File)}{Rank + 1}";
     }
 }
