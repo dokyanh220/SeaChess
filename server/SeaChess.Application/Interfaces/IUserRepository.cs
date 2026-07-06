@@ -8,5 +8,6 @@ namespace SeaChess.Application.Interfaces
         Task<User?> GetByUsernameAsync(string username);
         Task AddAsync(User user);
         Task<User?> GetByIdAsync(Guid userId);
+        Task UpdateAsync(User user);
     }
 }

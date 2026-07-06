@@ -21,8 +21,8 @@ namespace SeaChess.Application.Services
             double winRate = user.TotalMatches == 0
                 ? 0
                 : Math.Round((double)user.Wins / user.TotalMatches * 100, 2);
-            int level = Math.Max(1, (user.Experience / 1000) + 1);
-            string rank = DetermineRank(user.Elo);
+            int level = CalculateLevel(user.Experience);
+            string rank = DetermineRank(user.TotalMatches, user.Elo);
 
             return new UserProfileResponse
             {
@@ -43,19 +43,45 @@ namespace SeaChess.Application.Services
             };
         }
 
-        private string DetermineRank(int elo)
+        private string DetermineRank(int totalMatch, int elo)
         {
+            if (totalMatch < 2) return "Unranked";
             return elo switch
             {
-                < 800 => "Unranked",
-                < 1200 => "Bronze",
-                < 1600 => "Silver",
-                < 2000 => "Gold",
-                < 2400 => "Platinum",
-                < 2800 => "Diamond",
-                < 3200 => "Master",
-                _ => "Legend"
+                < 199 => "Bronze III",
+                < 299 => "Bronze II",
+                < 399 => "Bronze I",
+                < 499 => "Silver III",
+                < 599 => "Silver II",
+                < 699 => "Silver I",
+                < 799 => "Gold III",
+                < 899 => "Gold II",
+                < 999 => "Gold I",
+                < 1200 => "Platinum III",
+                < 1300 => "Platinum II",
+                < 1400 => "Platinum I",
+                < 1500 => "Diamond III",
+                < 1600 => "Diamond II",
+                < 1700 => "Diamond I",
+                < 1900 => "Master",
+                < 2200 => "Senior Master",
+                _ => "Grand Master"
             };
+        }
+
+        private int CalculateLevel(int exp)
+        {
+            int level = 1;
+            int expNeeded = 0;
+
+            while (true)
+            {
+                expNeeded += 100 * level * level;
+                if (exp < expNeeded) break;
+                level++;
+            }
+
+            return level;
         }
     }
 }

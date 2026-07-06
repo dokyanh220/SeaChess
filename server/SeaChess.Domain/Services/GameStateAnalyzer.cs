@@ -88,8 +88,7 @@ namespace SeaChess.Domain.Services
         {
             return board.HalfmoveClock >= 100;
         }
-
-        // Todo: Luật hòa lặp lại 3 lần
+        
         // Todo: Đi thử
     }
 }

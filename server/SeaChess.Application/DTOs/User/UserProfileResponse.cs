@@ -17,6 +17,6 @@ namespace SeaChess.Application.DTOs.User
         // Tính toán trong service k có trên db
         public double WinRate { get; set; }
         public int Level { get; set; }
-        public string Rank { get; set; } = string.Empty; 
+        public string Rank { get; set; } = string.Empty;
     }
 }

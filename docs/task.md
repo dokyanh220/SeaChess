@@ -37,6 +37,4 @@ Hết nước đi (Stalemate): Tới lượt nhưng không bị chiếu và khô
 
 Luật 50 nước (50-move rule): 50 nước liên tiếp không có quân nào bị bắt và không có Tốt nào di chuyển.
 
-Lặp lại thế cờ 3 lần (Threefold repetition).
-
 Hòa thuận tình (Draw offer): Một bên gửi yêu cầu hòa và bên kia đồng ý.

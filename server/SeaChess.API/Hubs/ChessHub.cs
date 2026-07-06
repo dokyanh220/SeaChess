@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SeaChess.Application.DTOs.Match;
 using SeaChess.Application.Interfaces;
+using SeaChess.Application.Services;
 using SeaChess.Domain.Entities;
 using SeaChess.Domain.Enums;
 using SeaChess.Domain.Services;
@@ -146,22 +147,128 @@ namespace SeaChess.API.Hubs
             string newFen = board.ToFenString(); 
 
             matchState.CurrentFen = newFen; // Cập nhật redis
-            
+
             await _gameState.SaveStateAsync(matchState);
 
-            // Gửi nước đi cho cả 2 người chơi để cập nhật bàn cờ
-            var opponentId = matchState.WhitePlayerId == userId ? matchState.BlackPlayerId : matchState.WhitePlayerId;
-
-            await Clients.Users(new[] { userId, opponentId }).SendAsync("ReceiveMove", new 
+            await Clients.Users(new[] { matchState.WhitePlayerId, matchState.BlackPlayerId }).SendAsync("ReceiveMove", new 
             {
                 From = fromPosition,
                 To = toPosition,
                 Promotion = promotionPiece,
-                NewFen = newFen
+                NewFen = newFen,
+                WhiteTimeLeftMs = matchState.WhiteTimeLeftMs,
+                BlackTimeLeftMs = matchState.BlackTimeLeftMs
             });
 
             // Kiểm tra kết thúc trận
-            // if (GameStateAnalyzer.IsCheckmate(board)) { ... }
+            PieceColor nextTurnColor = playerColor == PieceColor.White 
+                ? PieceColor.Black 
+                : PieceColor.White;
+
+            if (GameStateAnalyzer.IsCheckmate(board, nextTurnColor))
+            {
+                
+            }
+        }
+
+        private async Task EndGame(MatchState matchState, string? winnerId, string reason)
+        {
+            if (matchState.Status != "Playing") return;
+            matchState.Status = "Finished";
+            await _gameState.SaveStateAsync(matchState);
+
+            var whiteUser = await _userRepo.GetByIdAsync(Guid.Parse(matchState.WhitePlayerId));
+            var blackUser = await _userRepo.GetByIdAsync(Guid.Parse(matchState.BlackPlayerId));
+            if (whiteUser == null || blackUser == null) return;
+
+            int whiteEloChange = 0;
+            int blackEloChange = 0;
+            string resultForWhite;
+            string resultForBlack;
+
+            if (winnerId == null)
+            {
+                resultForWhite = "draw";
+                resultForBlack = "draw";
+
+                whiteUser.Draw++;
+                blackUser.Draw++;
+            }
+            else if (winnerId == matchState.WhitePlayerId)
+            {
+                resultForWhite = "win";
+                resultForBlack = "lose";
+
+                whiteEloChange = EloCalculator.CalculateWinElo(
+                    whiteUser.Elo, blackUser.Elo, matchState.WhiteTimeLeftMs
+                );
+                blackEloChange = EloCalculator.CalculateLoseElo(
+                    whiteUser.Elo, blackUser.Elo
+                );
+
+                whiteUser.Wins++;
+                blackUser.Loses++;
+            }
+            else
+            {
+                resultForBlack = "win";
+                resultForWhite = "lose";
+
+                blackEloChange = EloCalculator.CalculateWinElo(
+                    blackUser.Elo, whiteUser.Elo, matchState.WhiteTimeLeftMs
+                );
+                whiteEloChange = EloCalculator.CalculateLoseElo(
+                    whiteUser.Elo, blackUser.Elo
+                );
+
+                blackUser.Wins++;
+                whiteUser.Loses++;
+            }
+
+            whiteUser.Elo = Math.Max(0, whiteUser.Elo + whiteEloChange);
+            blackUser.Elo = Math.Max(0, blackUser.Elo + blackEloChange);
+            whiteUser.TotalMatches++;
+            blackUser.TotalMatches++;
+            whiteUser.Experience += 77;
+            blackUser.Experience += 77;
+
+            await _userRepo.UpdateAsync(whiteUser);
+            await _userRepo.UpdateAsync(blackUser);
+
+            await Clients.User(matchState.WhitePlayerId).SendAsync("GameOver", new
+            {
+                Result = resultForWhite,
+                Reason = reason,
+                EloChange = whiteEloChange,
+                NewElo = whiteUser.Elo 
+            });
+
+            await Clients.User(matchState.BlackPlayerId).SendAsync("GameOver", new
+            {
+                Result = resultForBlack,
+                Reason = reason,
+                EloChange = blackEloChange,
+                NewElo = blackUser.Elo
+            });
+
+            Console.WriteLine($"[Game Over] {matchState.MatchID} | Reason: {reason} | " +
+                    $"White({whiteUser.DisplayName}): {whiteEloChange:+#;-#;0} Elo | " +
+                    $"Black({blackUser.DisplayName}): {blackEloChange:+#;-#;0} Elo");
+        }
+
+        public async Task Resign(string matchId)
+        {
+            var userId = Context.UserIdentifier;
+            if (userId == null) return;
+
+            var matchState = await _gameState.GetStateAsync(matchId);
+            if (matchState == null || matchState.Status != "Playing") return;
+
+            string winnerId = matchState.WhitePlayerId == userId
+                ? matchState.BlackPlayerId
+                : matchState.WhitePlayerId;
+
+            await EndGame(matchState, winnerId, "Resign");
         }
     }
 }
