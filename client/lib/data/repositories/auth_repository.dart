@@ -60,7 +60,9 @@ class AuthRepository {
 
   Future<UserProfile?> getMyProfile() async {
     try {
-      final res = await _apiClient.dio.get('user/me');
+      // Bỏ qua browser cache bằng cách thêm timestamp (đặc biệt khi chạy Flutter Web / Chrome)
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final res = await _apiClient.dio.get('user/me?t=$timestamp');
       if (res.statusCode == 200) {
         return UserProfile.fromJson(res.data);
       }

@@ -71,20 +71,35 @@ class _ChessTimerWidgetState extends State<ChessTimerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isLow = _timeLeftMs < 10000; // Dưới 10 giây → cảnh báo
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: widget.isRunning
-            ? Colors.green.withOpacity(0.2)
-            : Colors.grey.withOpacity(0.2),
+            ? (isLow
+                ? const Color(0xFFFF6B6B).withOpacity(0.2)
+                : const Color(0xFF4ADE80).withOpacity(0.15))
+            : const Color(0xFF222A3D),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: widget.isRunning
+              ? (isLow
+                  ? const Color(0xFFFF6B6B).withOpacity(0.4)
+                  : const Color(0xFF4ADE80).withOpacity(0.3))
+              : const Color(0xFF424754),
+          width: 1,
+        ),
       ),
       child: Text(
         _formatTime(),
         style: TextStyle(
-          fontSize: 24,
+          fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: widget.isRunning ? Colors.green : Colors.black87,
+          fontFamily: 'monospace',
+          color: widget.isRunning
+              ? (isLow ? const Color(0xFFFF6B6B) : const Color(0xFF4ADE80))
+              : const Color(0xFFC2C6D6),
         ),
       ),
     );

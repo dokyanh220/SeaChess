@@ -66,6 +66,8 @@ flutter:
     - assets/pieces/
     - assets/boards/
     - assets/audio/
+    - assets/rank/
+    - assets/rank/simple/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

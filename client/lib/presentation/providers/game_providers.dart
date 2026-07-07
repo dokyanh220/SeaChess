@@ -17,6 +17,16 @@ class MatchState {
   final String gameReason;
   final int eloChange;
   final int newElo;
+  // Thông tin đối thủ
+  final String opponentName;
+  final int opponentLevel;
+  final int opponentElo;
+  final String opponentRank;
+  // Thông tin mình (lấy từ profile)
+  final String myName;
+  final int myLevel;
+  final int myElo;
+  final String myRank;
 
   MatchState({
     this.matchId = '',
@@ -32,6 +42,14 @@ class MatchState {
     this.gameReason = '',
     this.eloChange = 0,
     this.newElo = 0,
+    this.opponentName = 'Đối thủ',
+    this.opponentLevel = 0,
+    this.opponentElo = 0,
+    this.opponentRank = 'Unranked',
+    this.myName = '',
+    this.myLevel = 0,
+    this.myElo = 0,
+    this.myRank = 'Unranked',
   });
 
   MatchState coppyWith({
@@ -48,6 +66,14 @@ class MatchState {
     String? gameReason,
     int? eloChange,
     int? newElo,
+    String? opponentName,
+    int? opponentLevel,
+    int? opponentElo,
+    String? opponentRank,
+    String? myName,
+    int? myLevel,
+    int? myElo,
+    String? myRank,
   }) {
     return MatchState(
       matchId: matchId ?? this.matchId,
@@ -63,6 +89,14 @@ class MatchState {
       gameReason: gameReason ?? this.gameReason,
       eloChange: eloChange ?? this.eloChange,
       newElo: newElo ?? this.newElo,
+      opponentName: opponentName ?? this.opponentName,
+      opponentLevel: opponentLevel ?? this.opponentLevel,
+      opponentElo: opponentElo ?? this.opponentElo,
+      opponentRank: opponentRank ?? this.opponentRank,
+      myName: myName ?? this.myName,
+      myLevel: myLevel ?? this.myLevel,
+      myElo: myElo ?? this.myElo,
+      myRank: myRank ?? this.myRank,
     );
   }
 }
