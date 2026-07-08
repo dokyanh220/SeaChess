@@ -1,3 +1,4 @@
+import 'package:chess/chess.dart' as ch;
 import 'package:client/domain/utils/fen_parser.dart';
 import 'package:flutter/material.dart';
 
@@ -26,6 +27,9 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
   late AnimationController _animationController;
   late Animation<double> _blinkAnimation;
 
+  String? _selectedSquare;
+  List<Map<String, dynamic>> _validMoves = [];
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +46,39 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  void _handleSquareTap(String squareName, bool isMyPiece, bool canDrag) {
+    // Nếu bấm vào ô có thể đi, thực hiện di chuyển
+    final validMove = _validMoves.cast<Map<String, dynamic>?>().firstWhere(
+      (m) => m?['to'] == squareName, 
+      orElse: () => null
+    );
+
+    if (_selectedSquare != null && validMove != null) {
+      widget.onMove?.call(_selectedSquare!, squareName);
+      setState(() {
+        _selectedSquare = null;
+        _validMoves = [];
+      });
+      return;
+    }
+
+    // Nếu bấm vào quân của mình, chọn quân đó và tính toán nước đi
+    if (canDrag) {
+      final chess = ch.Chess.fromFEN(widget.fen);
+      final moves = chess.moves({'square': squareName, 'verbose': true});
+      setState(() {
+        _selectedSquare = squareName;
+        _validMoves = moves.cast<Map<String, dynamic>>();
+      });
+    } else {
+      // Bấm ra chỗ khác -> bỏ chọn
+      setState(() {
+        _selectedSquare = null;
+        _validMoves = [];
+      });
+    }
   }
 
   String _getPieceAssetPath(String pieceChar) {
@@ -143,20 +180,65 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
                   );
                 },
               );
+            } else if (_selectedSquare == squareName) {
+              backgroundWidget = Stack(
+                children: [
+                  Container(color: baseColor),
+                  Container(color: Colors.yellow.withOpacity(0.4)),
+                ],
+              );
             }
 
-            return DragTarget<String>(
-              onAcceptWithDetails: (details) {
-                final fromSquare = details.data;
-                if (fromSquare != squareName && widget.onMove != null) {
-                  widget.onMove!(fromSquare, squareName);
-                }
-              },
-              builder: (context, candidateData, rejectData) {
-                return Stack(
-                  children: [
-                    // 1. Lớp background (Bao gồm màu ô và nhấp nháy đỏ)
-                    Positioned.fill(child: backgroundWidget),
+            bool isValidMove = _validMoves.any((m) => m['to'] == squareName);
+            Widget movePreview = const SizedBox.shrink();
+            if (isValidMove) {
+              if (piece.isNotEmpty) {
+                // Vòng tròn hoặc viền đỏ (ô có quân đối phương để ăn)
+                movePreview = Padding(
+                  padding: const EdgeInsets.all(2.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.red.withOpacity(0.8), width: 4),
+                    ),
+                  ),
+                );
+              } else {
+                // Chấm tròn ở giữa ô (ô trống)
+                movePreview = Center(
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                );
+              }
+            }
+
+            return GestureDetector(
+              onTap: () => _handleSquareTap(squareName, isMyPiece, canDrag),
+              child: DragTarget<String>(
+                onAcceptWithDetails: (details) {
+                  final fromSquare = details.data;
+                  if (fromSquare != squareName && widget.onMove != null) {
+                    widget.onMove!(fromSquare, squareName);
+                    setState(() {
+                      _selectedSquare = null;
+                      _validMoves = [];
+                    });
+                  }
+                },
+                builder: (context, candidateData, rejectData) {
+                  return Stack(
+                    children: [
+                      // 1. Lớp background (Bao gồm màu ô và nhấp nháy đỏ hoặc highlight)
+                      Positioned.fill(child: backgroundWidget),
+
+                      // 2. Move preview (chấm tròn hoặc viền đỏ)
+                      if (isValidMove) Positioned.fill(child: movePreview),
 
                     // 2. Tọa độ số (cột trái)
                     if (col == 0)
@@ -188,13 +270,13 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
                         ),
                       ),
 
-                    // 4. Lớp quân cờ ở trên cùng để không bị block Drag
-                    Positioned.fill(
-                      child: Center(child: pieceWidget),
-                    ),
-                  ],
-                );
-              },
+                      Positioned.fill(
+                        child: Center(child: pieceWidget),
+                      ),
+                    ],
+                  );
+                },
+              ),
             );
           },
         ),

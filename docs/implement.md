@@ -1,117 +1,351 @@
-thử thách bản thân với máy (AI) thông qua các tùy chọn về độ khó, màu quân và thời gian trận đấu.
+# Chức năng: Đấu với Máy (AI)
 
-Tóm tắt yêu cầu
-Cấp độ khó (Difficulty Levels):
-Mới bắt đầu (Beginner)
-Dễ (Easy)
-Bình thường (Normal)
-Khó (Hard)
-Rất khó (Very hard)
-Chọn màu quân (Side Selection):
-Trắng (White)
-Đen (Black)
-Ngẫu nhiên (Random)
-Chọn thời gian (Time Controls):
-5 phút, 10 phút, 20 phút, 30 phút.
-Giải pháp Kiến trúc đề xuất
-Chúng ta có hai hướng đi chính cho Game Engine AI:
+Cho phép người chơi thử thách bản thân với máy (AI) thông qua các tùy chọn về **độ khó**, **màu quân** và **thời gian trận đấu**.
 
-Server-Side AI (Khuyến nghị):
-Chạy Engine Stockfish trên Server ASP.NET Core.
-Client gửi nước đi lên thông qua SignalR/REST, Server chuyển nước đi vào Engine, lấy nước đi phản hồi tốt nhất của AI và gửi lại cho Client.
-Ưu điểm: Đồng bộ logic game hoàn toàn trên Server, không tăng kích thước file cài đặt app client (.apk/.ipa), hoạt động ổn định trên mọi thiết bị di động cũ mà không gây nóng máy/tốn pin.
-Client-Side AI (Local Engine):
-Tích hợp một package engine cờ vua (như Stockfish chạy qua Flutter FFI hoặc WebAssembly) trực tiếp trên Flutter.
-Ưu điểm: Hoạt động offline, phản hồi tức thì không phụ thuộc mạng.
-Nhược điểm: Phức tạp trong việc build thư viện native cho đa nền tảng (Android, iOS, Windows, macOS, Web), tăng dung lượng ứng dụng và tốn pin thiết bị khi chạy ở độ khó cao.
-IMPORTANT
+---
 
-Bản kế hoạch này được thiết kế theo hướng Server-Side AI do SeaChess hiện tại đang đi theo mô hình Server-authoritative (Server kiểm soát toàn bộ logic game để chống hack và đồng bộ qua SignalR).
+# Tóm tắt yêu cầu
 
-Chi tiết các thiết lập & Phân tích Kỹ thuật
-1. Cấu hình Cấp độ khó (Stockfish UCI Parameters)
-Stockfish hỗ trợ điều chỉnh sức mạnh thông qua thông số Skill Level (từ 0 đến 20) và giới hạn độ sâu tìm kiếm depth hoặc thời gian tính toán movetime. Cấu hình đề xuất cho các cấp độ khó:
+## Cấp độ khó (Difficulty Levels)
 
-Cấp độ	Cấp độ Stockfish (Skill Level)	Độ sâu tối đa (depth)	Thời gian tối đa của AI	Mô tả
-Mới bắt đầu	0	1	100ms	AI thường xuyên đi lỗi, thích hợp cho người mới học đi quân.
-Dễ	3	3	200ms	AI chơi yếu, dễ mắc sai lầm cơ bản.
-Bình thường	8	6	400ms	AI chơi ở mức độ phong trào trung bình.
-Khó	14	10	800ms	AI chơi chắc chắn, ít lỗi sơ đẳng. Thử thách tốt.
-Rất khó	20	15	1500ms	AI đạt sức mạnh tối đa ở độ sâu quy định, rất khó để thắng.
-2. Thiết lập Màu quân (Side Selection)
-Quân Trắng: Người chơi đi trước. Màn hình bàn cờ hiển thị góc nhìn từ phía quân Trắng (Bottom).
-Quân Đen: AI đi trước. Server tự động gọi Stockfish thực hiện nước đi đầu tiên ngay khi trận đấu bắt đầu và gửi FEN về cho Client. Màn hình bàn cờ hiển thị góc nhìn từ phía quân Đen (Bottom).
-Ngẫu nhiên: Server tung đồng xu ngẫu nhiên chọn Trắng hoặc Đen cho người chơi và tiến hành khởi tạo trận đấu tương ứng.
-3. Đồng hồ và Thời gian (Time Controls)
-Trận đấu có áp dụng đồng hồ đếm ngược (5, 10, 20, 30 phút) cho người chơi.
-Khi đến lượt người chơi, đồng hồ đếm ngược của người chơi chạy. Nếu hết giờ, người chơi bị xử Thua do hết giờ (Timeout).
-Đối với AI, thời gian đi quân của AI sẽ được trừ trực tiếp vào đồng hồ ảo của AI. Để trận đấu tự nhiên hơn, AI sẽ phản hồi sau một khoảng trễ nhỏ (ví dụ từ 500ms đến 2s tùy độ khó) thay vì đi quân ngay lập tức trong 1ms. AI không bao giờ bị xử thua vì hết giờ (do thời gian tính toán luôn bị giới hạn rất nhỏ).
-Thay đổi đề xuất trong Mã nguồn
-1. Giao diện Flutter (Client)
-[NEW] 
-ai_setup_dialog.dart
-Widget Dialog/Bottom Sheet cho phép chọn cấu hình trận đấu:
-Dropdown/Segmented Control chọn độ khó (5 cấp độ).
-Radio/Icon Button chọn màu quân (Trắng, Đen, Ngẫu nhiên).
-Grid/Segmented Control chọn thời gian (5, 10, 20, 30 phút).
-Khi xác nhận, gửi Request tạo trận đấu với AI lên Server.
-[MODIFY] 
-lobby_screen.dart
-Thêm nút "Đấu với Máy" bên cạnh nút "Tìm trận". Khi nhấn nút này sẽ hiển thị AiSetupDialog.
-[MODIFY] 
-game_screen.dart
-Cập nhật hiển thị tên đối thủ là "Máy (AI) - Cấp độ: [Tên cấp độ]".
-Đảm bảo góc quay của bàn cờ tương thích với màu quân được chọn (White ở dưới, Black ở trên hoặc ngược lại).
-Chặn kéo thả quân cờ khi đang là lượt của AI (máy đang suy nghĩ).
-2. Logic Backend (Server - ASP.NET Core)
-[NEW] 
-IStockfishService.cs
-Interface định nghĩa dịch vụ tương tác với Stockfish.
-Phương thức chính: Task<string> GetBestMoveAsync(string fen, int skillLevel, int depthMs);
-[NEW] 
-StockfishService.cs
-Hiện thực hóa IStockfishService bằng cách giao tiếp với tiến trình stockfish (executable) qua giao thức UCI thông qua System.Diagnostics.Process.
-Gửi lệnh:
-text
+- Mới bắt đầu (Beginner)
+- Dễ (Easy)
+- Bình thường (Normal)
+- Khó (Hard)
+- Rất khó (Very Hard)
 
-position fen [FEN_STRING]
-setoption name Skill Level value [SKILL_LEVEL]
+## Chọn màu quân (Side Selection)
+
+- Trắng (White)
+- Đen (Black)
+- Ngẫu nhiên (Random)
+
+## Chọn thời gian (Time Controls)
+
+- 5 phút
+- 10 phút
+- 20 phút
+- 30 phút
+
+---
+
+# Giải pháp kiến trúc đề xuất
+
+Có hai hướng triển khai AI.
+
+## 1. Server-Side AI (Khuyến nghị)
+
+Chạy Stockfish trên ASP.NET Core Server.
+
+Luồng hoạt động:
+
+```text
+Flutter
+    │
+SignalR / REST
+    │
+ASP.NET Core
+    │
+Stockfish Engine
+    │
+Best Move
+    │
+Flutter
+```
+
+### Ưu điểm
+
+- Toàn bộ logic game nằm trên Server.
+- Chống hack tốt.
+- Client nhẹ, không tăng dung lượng APK/IPA.
+- Hoạt động ổn định trên các thiết bị cấu hình thấp.
+- Không làm nóng máy hoặc tiêu tốn pin.
+
+---
+
+## 2. Client-Side AI
+
+Tích hợp Stockfish trực tiếp vào Flutter thông qua:
+
+- Flutter FFI
+- WebAssembly
+
+### Ưu điểm
+
+- Chơi offline.
+- Phản hồi gần như tức thì.
+
+### Nhược điểm
+
+- Build native phức tạp cho Android/iOS/Desktop/Web.
+- Tăng kích thước ứng dụng.
+- Tiêu hao CPU và pin ở độ khó cao.
+
+---
+
+> **Quan trọng**
+>
+> SeaChess sử dụng kiến trúc **Server-authoritative**, vì vậy lựa chọn **Server-Side AI** là phù hợp nhất nhằm đảm bảo đồng bộ trạng thái trận đấu và chống gian lận.
+
+---
+
+# Thiết lập AI
+
+## 1. Cấp độ khó
+
+Stockfish hỗ trợ cấu hình thông qua:
+
+- Skill Level
+- Search Depth
+- Thời gian suy nghĩ
+
+| Cấp độ | Skill Level | Depth | Thời gian suy nghĩ | Mô tả |
+|---------|------------:|------:|-------------------:|------|
+| Mới bắt đầu | 0 | 1 | 100ms | AI thường xuyên đi sai, phù hợp người mới. |
+| Dễ | 3 | 3 | 200ms | AI yếu, mắc nhiều lỗi cơ bản. |
+| Bình thường | 8 | 6 | 400ms | Mức độ trung bình. |
+| Khó | 14 | 10 | 800ms | Chơi chắc chắn, ít sai lầm. |
+| Rất khó | 20 | 15 | 1500ms | Sức mạnh tối đa theo giới hạn depth. |
+
+---
+
+## 2. Chọn màu quân
+
+### Trắng
+
+- Người chơi đi trước.
+- Bàn cờ hiển thị theo góc nhìn quân Trắng.
+
+### Đen
+
+- AI đi trước.
+- Server gọi Stockfish thực hiện nước đầu tiên.
+- Gửi trạng thái FEN mới về Client.
+- Bàn cờ hiển thị theo góc nhìn quân Đen.
+
+### Ngẫu nhiên
+
+Server chọn ngẫu nhiên Trắng hoặc Đen.
+
+---
+
+## 3. Đồng hồ thi đấu
+
+Các lựa chọn:
+
+- 5 phút
+- 10 phút
+- 20 phút
+- 30 phút
+
+### Người chơi
+
+- Đồng hồ chỉ chạy khi đến lượt người chơi.
+- Hết giờ ⇒ Thua do Timeout.
+
+### AI
+
+- Thời gian suy nghĩ được trừ vào đồng hồ AI.
+- AI phản hồi sau khoảng:
+
+```
+500ms ~ 2s
+```
+
+để tạo cảm giác tự nhiên.
+
+AI sẽ không bị xử thua vì hết giờ.
+
+---
+
+# Thay đổi mã nguồn
+
+## Flutter Client
+
+### [NEW] ai_setup_dialog.dart
+
+Dialog cấu hình trận đấu AI.
+
+Bao gồm:
+
+- Dropdown chọn độ khó
+- Radio chọn màu quân
+- Grid chọn thời gian
+
+Sau khi xác nhận:
+
+- Gửi request tạo trận đấu AI lên Server.
+
+---
+
+### [MODIFY] lobby_screen.dart
+
+Thêm nút:
+
+```
+Đấu với Máy
+```
+
+Khi nhấn:
+
+```
+Hiển thị AiSetupDialog
+```
+
+---
+
+### [MODIFY] game_screen.dart
+
+Cập nhật:
+
+- Hiển thị tên đối thủ
+
+```
+Máy (AI) - Khó
+```
+
+- Xoay bàn cờ theo màu quân.
+- Khóa thao tác kéo quân khi AI đang suy nghĩ.
+
+---
+
+# Backend ASP.NET Core
+
+## [NEW] IStockfishService.cs
+
+```csharp
+Task<string> GetBestMoveAsync(
+    string fen,
+    int skillLevel,
+    int depth
+);
+```
+
+---
+
+## [NEW] StockfishService.cs
+
+Khởi chạy tiến trình Stockfish bằng:
+
+```csharp
+System.Diagnostics.Process
+```
+
+Giao tiếp theo chuẩn UCI.
+
+Ví dụ:
+
+```text
+position fen [FEN]
+setoption name Skill Level value [LEVEL]
 go depth [DEPTH]
-Đọc đầu ra để lấy chuỗi bestmove [FROM][TO] (ví dụ: bestmove e2e4).
-[MODIFY] 
-GameHub.cs
-Thêm Event SignalR: StartAiGame(int difficulty, string colorPref, int timeMinutes).
-Khi nhận sự kiện:
-Tạo một phòng game AI riêng (không đưa vào hàng chờ matchmaking).
-Xác định màu quân của người chơi (nếu random thì chọn ngẫu nhiên).
-Khởi tạo trạng thái bàn cờ (FEN bắt đầu).
-Nếu người chơi chọn quân Đen (AI đi trước), Server gọi ngay StockfishService để lấy nước đi đầu tiên cho AI, cập nhật FEN và gửi về Client.
-Gửi sự kiện MatchStarted tới Client kèm theo thông tin phòng đấu và cấu hình quân cờ.
-Sửa đổi hàm MakeMove trong Hub:
-Khi người chơi thực hiện nước đi hợp lệ:
-Cập nhật FEN bàn cờ.
-Cập nhật thời gian của người chơi.
-Gửi nước đi vừa thực hiện về Client để cập nhật UI.
-Kiểm tra xem game đã kết thúc chưa (Checkmate/Draw). Nếu chưa, tiếp tục chạy luồng AI:
-Server gọi StockfishService.GetBestMoveAsync với cấu hình độ khó của trận đấu.
-Áp dụng nước đi của AI vào Game Engine để kiểm tra tính hợp lệ và cập nhật FEN mới.
-Gửi sự kiện cập nhật nước đi của AI (MoveMade) về cho Client.
-Kiểm tra trạng thái kết thúc ván cờ sau nước đi của AI.
-Kế hoạch kiểm thử & Xác minh (Verification Plan)
-Kiểm thử Tự động
-Unit Test cho StockfishService:
-Đảm bảo tiến trình Stockfish khởi động thành công trên môi trường chạy server.
-Gửi các chuỗi FEN cơ bản (ví dụ thế cờ chiếu bí 1 nước) và kiểm tra xem Stockfish có trả về nước đi đúng hay không.
-Kiểm tra việc điều chỉnh Skill Level có hoạt động chính xác và phản hồi đúng định dạng UCI.
-Unit Test cho Luồng Game AI trên Server:
-Giả lập trận đấu đấu với AI.
-Xác minh việc chọn quân Đen thì AI luôn thực hiện nước đi đầu tiên.
-Kiểm thử Thủ công
-Kiểm tra UI/UX trên Client:
-Mở Dialog cấu hình AI, chọn các tổ hợp khác nhau (Ví dụ: Khó + Đen + 10 phút) và nhấn bắt đầu.
-Kiểm tra xem bàn cờ có được lật đúng góc nhìn (nếu chọn quân Đen thì quân Đen nằm phía dưới).
-Kiểm tra đồng hồ đếm ngược của người chơi hoạt động đúng và dừng lại khi đến lượt AI.
-Kiểm tra trải nghiệm chơi:
-Chơi thử một ván ở cấp độ Mới bắt đầu để xem AI có đi các nước đi ngớ ngẩn hoặc dễ bị bắt quân hay không.
-Chơi thử ở cấp độ Rất khó để kiểm tra tốc độ phản hồi và độ thông minh của AI.
-Thử để hết giờ xem hệ thống có xử thua chính xác không.
+```
+
+Đọc kết quả:
+
+```text
+bestmove e2e4
+```
+
+---
+
+## [MODIFY] GameHub.cs
+
+Thêm SignalR Event:
+
+```csharp
+StartAiGame(
+    int difficulty,
+    string colorPreference,
+    int timeMinutes
+)
+```
+
+Quy trình:
+
+1. Tạo phòng AI.
+2. Chọn màu quân.
+3. Khởi tạo FEN.
+4. Nếu AI đi trước:
+   - Gọi Stockfish.
+   - Cập nhật bàn cờ.
+5. Gửi MatchStarted về Client.
+
+---
+
+### MakeMove()
+
+Sau khi người chơi đi:
+
+1. Kiểm tra hợp lệ.
+2. Cập nhật FEN.
+3. Cập nhật đồng hồ.
+4. Gửi MoveMade cho Client.
+5. Kiểm tra kết thúc trận.
+
+Nếu chưa kết thúc:
+
+- Gọi Stockfish.
+- Lấy nước đi tốt nhất.
+- Áp dụng vào Game Engine.
+- Cập nhật FEN.
+- Gửi MoveMade của AI.
+- Kiểm tra trạng thái kết thúc.
+
+---
+
+# Verification Plan
+
+## Unit Test
+
+### StockfishService
+
+- Khởi động Stockfish.
+- Kiểm tra gửi FEN.
+- Kiểm tra trả về bestmove.
+- Kiểm tra Skill Level.
+- Kiểm tra định dạng UCI.
+
+---
+
+### Game AI
+
+- Giả lập trận đấu.
+- Kiểm tra AI đi trước khi người chơi chọn quân Đen.
+- Kiểm tra tạo phòng AI.
+
+---
+
+# Manual Test
+
+## UI
+
+Kiểm tra các tổ hợp:
+
+- Khó + Đen + 10 phút
+- Dễ + Trắng + 5 phút
+- Rất khó + Ngẫu nhiên + 30 phút
+
+Xác nhận:
+
+- Bàn cờ xoay đúng.
+- Đồng hồ chạy đúng.
+- Không thể kéo quân khi AI đang suy nghĩ.
+
+---
+
+## Gameplay
+
+### Mới bắt đầu
+
+- AI đi nhiều nước yếu.
+- Dễ bắt quân.
+
+### Rất khó
+
+- AI phản hồi nhanh.
+- Chất lượng nước đi cao.
+
+### Timeout
+
+Để hết giờ và xác nhận hệ thống xử thua chính xác.

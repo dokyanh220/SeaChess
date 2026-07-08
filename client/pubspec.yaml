@@ -39,6 +39,7 @@ dependencies:
   signalr_netcore: ^1.4.4
   shared_preferences: ^2.5.5
   audioplayers: ^6.8.1
+  chess: ^0.8.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
