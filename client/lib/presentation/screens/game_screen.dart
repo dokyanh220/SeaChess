@@ -50,16 +50,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             _buildTopBar(colorScheme),
 
             // ========== OPPONENT INFO ==========
-            _buildPlayerInfo(
-              name: matchState.opponentName,
-              level: matchState.opponentLevel,
-              elo: matchState.opponentElo,
-              rank: matchState.opponentRank,
-              timeMs: opponentTimeMs,
-              isRunning: !isMyTurn,
-              colorScheme: colorScheme,
-              isOpponent: true,
-            ),
+            _buildOpponentInfo(matchState, opponentTimeMs, !isMyTurn, colorScheme),
 
             // ========== CHESS BOARD ==========
             Expanded(
@@ -85,22 +76,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
 
-            // ========== MY INFO ==========
-            _buildPlayerInfo(
-              name: matchState.myName.isNotEmpty
-                  ? '${matchState.myName} (${matchState.myColor == 'white' ? 'Trắng ⚪' : 'Đen ⚫'})'
-                  : 'Bạn (${matchState.myColor == 'white' ? 'Trắng ⚪' : 'Đen ⚫'})',
-              level: matchState.myLevel,
-              elo: matchState.myElo,
-              rank: matchState.myRank,
-              timeMs: myTimeMs,
-              isRunning: isMyTurn,
-              colorScheme: colorScheme,
-              isOpponent: false,
-            ),
-
-            // ========== ACTION BUTTONS ==========
-            _buildActionButtons(matchState, colorScheme),
+            // ========== ACTION BUTTONS & MY TIMER ==========
+            _buildActionButtonsAndTimer(matchState, myTimeMs, isMyTurn, colorScheme),
             const SizedBox(height: 8),
           ],
         ),
@@ -127,19 +104,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  /// Info bar cho mỗi player (đối thủ / mình)
-  Widget _buildPlayerInfo({
-    required String name,
-    required int level,
-    required int elo,
-    required String rank,
-    required double timeMs,
-    required bool isRunning,
-    required ColorScheme colorScheme,
-    required bool isOpponent,
-  }) {
-    final rankColor = Color(RankHelper.getRankColor(rank));
-
+  /// Info bar cho đối thủ
+  Widget _buildOpponentInfo(MatchState matchState, double timeMs, bool isRunning, ColorScheme colorScheme) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -154,55 +120,43 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Rank icon nhỏ
-          SizedBox(
-            width: 28,
-            height: 28,
-            child: Image.asset(
-              RankHelper.getRankAssetPath(rank),
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) =>
-                  Icon(Icons.shield, size: 20, color: rankColor),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Tên + Level + Elo
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
+                // Hàng 1: Tên, Elo, Rank
                 Row(
                   children: [
-                    if (level > 0) ...[
-                      _buildSmallChip(
-                        'Lv.$level',
-                        colorScheme.primaryContainer,
+                    Flexible(
+                      child: Text(
+                        matchState.opponentName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(width: 6),
-                    ],
-                    if (elo > 0)
-                      _buildSmallChip(
-                        'Elo $elo',
-                        colorScheme.secondaryContainer,
-                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (matchState.opponentElo > 0)
+                      _buildSmallChip('Elo ${matchState.opponentElo}', colorScheme.secondaryContainer),
+                    const SizedBox(width: 6),
+                    _buildSmallChip(
+                      matchState.opponentRank, 
+                      Color(RankHelper.getRankColor(matchState.opponentRank)),
+                    ),
                   ],
                 ),
+                const SizedBox(height: 6),
+                // Hàng 2: Lv. X
+                if (matchState.opponentLevel > 0)
+                  _buildSmallChip('Lv.${matchState.opponentLevel}', colorScheme.primaryContainer),
               ],
             ),
           ),
-
           // Timer
           ChessTimerWidget(
             initialTimeMs: timeMs,
@@ -232,14 +186,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  /// Action buttons: Đầu hàng + Xin hòa
-  Widget _buildActionButtons(MatchState matchState, ColorScheme colorScheme) {
+  /// Action buttons: Đầu hàng + Xin hòa + My Timer
+  Widget _buildActionButtonsAndTimer(MatchState matchState, double timeMs, bool isRunning, ColorScheme colorScheme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
           // Nút Đầu hàng
           Expanded(
+            flex: 2,
             child: SizedBox(
               height: 42,
               child: OutlinedButton.icon(
@@ -272,6 +227,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           const SizedBox(width: 10),
           // Nút Xin hòa (disabled)
           Expanded(
+            flex: 2,
             child: SizedBox(
               height: 42,
               child: Tooltip(
@@ -312,6 +268,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ),
               ),
             ),
+          ),
+          const SizedBox(width: 10),
+          // My Timer
+          ChessTimerWidget(
+            initialTimeMs: timeMs,
+            isRunning: isRunning,
           ),
         ],
       ),

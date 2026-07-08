@@ -1,0 +1,37 @@
+services:
+  seachess-api:
+    build: ./server
+    ports:
+      - "5039:5039"
+    environment:
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
+      - ConnectionStrings__RedisConnection=redis:6379
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
+      - JwtSettings__Issuer=SeaChessAPI
+      - JwtSettings__Audience=SeaChessClient
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - seachess-api
+    restart: unless-stopped
+
+volumes:
+  redis-data:

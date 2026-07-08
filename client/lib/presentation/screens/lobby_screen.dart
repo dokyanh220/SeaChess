@@ -4,6 +4,7 @@ import 'package:client/domain/utils/rank_helper.dart';
 import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:client/presentation/providers/game_providers.dart';
 import 'package:client/presentation/screens/game_screen.dart';
+import 'package:client/presentation/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -51,9 +52,14 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         final initialFen = args[1].toString();
         final color = args[2].toString();
 
+        Map<String, dynamic> opponentInfo = {};
+        if (args.length > 3 && args[3] is Map) {
+          opponentInfo = args[3] as Map<String, dynamic>;
+        }
+
         ref
             .read(matchStateProvider.notifier)
-            .initMatch(matchId, initialFen, color);
+            .initMatch(matchId, initialFen, color, opponentInfo);
 
         _stopSearchTimer();
         setState(() => _isSearching = false);
@@ -168,6 +174,46 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             );
           },
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: colorScheme.surfaceContainerLowest,
+        selectedItemColor: colorScheme.tertiary,
+        unselectedItemColor: colorScheme.onSurfaceVariant.withOpacity(0.4),
+        currentIndex: 0,
+        type: BottomNavigationBarType.fixed,
+        onTap: (index) {
+          if (index == 3) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            );
+          } else if (index != 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Tính năng đang phát triển'),
+                backgroundColor: colorScheme.surfaceContainerHigh,
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_filled),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.leaderboard_rounded),
+            label: 'Ranks',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storefront_rounded),
+            label: 'Shop',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings_rounded),
+            label: 'Settings',
+          ),
+        ],
       ),
     );
   }

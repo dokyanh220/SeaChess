@@ -157,8 +157,28 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     });
   }
 
-  void initMatch(String id, String fen, String color) {
-    state = MatchState(matchId: id, fen: fen, myColor: color);
+  void initMatch(String id, String fen, String color, [Map<String, dynamic>? opponentInfo]) {
+    String oppName = 'Đối thủ';
+    int oppLevel = 1;
+    int oppElo = 799;
+    String oppRank = 'Unranked';
+
+    if (opponentInfo != null) {
+      oppName = opponentInfo['opponentName'] ?? opponentInfo['OpponentName'] ?? 'Đối thủ';
+      oppLevel = (opponentInfo['opponentLevel'] ?? opponentInfo['OpponentLevel'] ?? 1).toInt();
+      oppElo = (opponentInfo['opponentElo'] ?? opponentInfo['OpponentElo'] ?? 799).toInt();
+      oppRank = opponentInfo['opponentRank'] ?? opponentInfo['OpponentRank'] ?? 'Unranked';
+    }
+
+    state = MatchState(
+      matchId: id, 
+      fen: fen, 
+      myColor: color,
+      opponentName: oppName,
+      opponentLevel: oppLevel,
+      opponentElo: oppElo,
+      opponentRank: oppRank,
+    );
   }
 
   void updateFen(String newFen) {

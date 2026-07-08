@@ -105,12 +105,9 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
             Color baseColor = isLightSquare ? const Color(0xFFF0D9B5) : const Color(0xFFB58863);
             Color coordColor = isLightSquare ? const Color(0xFFB58863) : const Color(0xFFF0D9B5);
 
-            // Xây dựng widget hiển thị quân cờ lớn hơn (Padding = 0 hoặc nhỏ lại)
+            // Xây dựng widget hiển thị quân cờ lớn hơn (Padding = 0)
             Widget pieceWidget = piece.isNotEmpty
-                ? Padding(
-                    padding: const EdgeInsets.all(2.0), // Giảm padding để quân cờ to hơn
-                    child: Image.asset(_getPieceAssetPath(piece)),
-                  )
+                ? Image.asset(_getPieceAssetPath(piece))
                 : const SizedBox.shrink();
 
             if (piece.isNotEmpty && canDrag) {
@@ -119,17 +116,14 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
                 feedback: Material(
                   color: Colors.transparent,
                   child: SizedBox(
-                    width: 70, // Cho dragging feedback to hơn một chút
-                    height: 70,
+                    width: 80, // Cho dragging feedback to hơn
+                    height: 80,
                     child: Image.asset(_getPieceAssetPath(piece)),
                   ),
                 ),
                 childWhenDragging: Opacity(
                   opacity: 0.3,
-                  child: Padding(
-                    padding: const EdgeInsets.all(2.0),
-                    child: Image.asset(_getPieceAssetPath(piece)),
-                  ),
+                  child: Image.asset(_getPieceAssetPath(piece)),
                 ),
                 child: pieceWidget,
               );
