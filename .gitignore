@@ -22,7 +22,6 @@ build/
 
 # Environment files
 .env
-.env.*
 
 # IDE / editor
 .vscode/
