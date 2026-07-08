@@ -8,6 +8,7 @@ COPY SeaChess.API/*.csproj SeaChess.API/
 COPY SeaChess.Application/*.csproj SeaChess.Application/
 COPY SeaChess.Domain/*.csproj SeaChess.Domain/
 COPY SeaChess.Infrastructure/*.csproj SeaChess.Infrastructure/
+COPY SeaChess.Tests/*.csproj SeaChess.Tests/
 RUN dotnet restore SeaChess.server.slnx
 
 # Copy toàn bộ code còn lại và build
