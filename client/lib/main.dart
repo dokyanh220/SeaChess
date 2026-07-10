@@ -1,4 +1,5 @@
 import 'package:client/core/services/local_storage_service.dart';
+import 'package:client/presentation/screens/game_screen.dart';
 import 'package:client/presentation/screens/lobby_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +18,7 @@ class SeaChessApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SeaChess',
-      debugShowCheckedModeBanner: false, // Tắt dải băng đỏ "Debug"
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // Oceanic Grandmaster Design System
         colorScheme: ColorScheme.dark(
@@ -42,7 +43,6 @@ class SeaChessApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFF0B1326),
       ),
-      // Tạm thời hiển thị một màn hình trống để xác nhận app chạy lên
       home: const AuthGate(),
     );
   }
@@ -51,24 +51,41 @@ class SeaChessApp extends StatelessWidget {
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
+  /// Đọc token và matchId đang dở từ SharedPreferences
+  Future<({String? token, String? matchId})> _loadStoredData() async {
+    final storage = LocalStorageService();
+    final token   = await storage.getToken();
+    final matchId = await storage.getActiveMatch();
+    return (token: token, matchId: matchId);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: LocalStorageService().getToken(),
+    return FutureBuilder<({String? token, String? matchId})>(
+      future: _loadStoredData(),
       builder: (context, snapshot) {
+        // Đang tải
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (snapshot.hasData &&
-            snapshot.data != null &&
-            snapshot.data!.isNotEmpty) {
-          return const LobbyScreen();
+        final token   = snapshot.data?.token;
+        final matchId = snapshot.data?.matchId;
+
+        // Chưa đăng nhập
+        if (token == null || token.isEmpty) {
+          return const LoginScreen();
         }
 
-        return const LoginScreen();
+        // Có trận đang dở → vào GameScreen, nó sẽ tự gọi rejoinMatch()
+        if (matchId != null && matchId.isNotEmpty) {
+          return const GameScreen(isRejoining: true);
+        }
+
+        // Bình thường → vào Lobby
+        return const LobbyScreen();
       },
     );
   }

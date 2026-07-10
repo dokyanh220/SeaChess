@@ -67,7 +67,13 @@ namespace SeaChess.API.Workers
 
                             string stateJson = JsonSerializer.Serialize(matchState);
 
-                            await db.StringSetAsync($"match_state:{matchId}", stateJson);
+                            await db.StringSetAsync($"match_state:{matchId}", stateJson, TimeSpan.FromHours(3));
+
+                            // Lưu mapping userId → matchId để hỗ trợ reconnect
+                            var matchTtl = TimeSpan.FromHours(3);
+                            await db.StringSetAsync($"user_active_match:{p1}", matchId, matchTtl);
+                            await db.StringSetAsync($"user_active_match:{p2}", matchId, matchTtl);
+
 
                             // Fetch user profiles to send opponent info
                             using var scope = _serviceProvider.CreateScope();

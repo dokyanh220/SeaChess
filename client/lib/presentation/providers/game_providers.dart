@@ -1,4 +1,5 @@
 import 'package:client/core/services/audio_service.dart';
+import 'package:client/core/services/local_storage_service.dart';
 import 'package:client/core/services/signalr_service.dart';
 import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -32,8 +33,8 @@ class MatchState {
     this.matchId = '',
     this.fen = '',
     this.myColor = '',
-    this.whiteTimeMs = 120000,
-    this.blackTimeMs = 120000,
+    this.whiteTimeMs = 1200000,
+    this.blackTimeMs = 1200000,
     this.isInCheck = false,
     this.kingInCheckSquare = '',
     this.attackerSquares = const [],
@@ -104,10 +105,12 @@ class MatchState {
 class MatchStateNotifier extends StateNotifier<MatchState> {
   final SignalrService _signalR;
   final AudioService _audioService;
+  final LocalStorageService _storage;
 
-  MatchStateNotifier(this._signalR, this._audioService) : super(MatchState()) {
-    _audioService.init(); // Khởi tạo âm thanh sẵn
+  MatchStateNotifier(this._signalR, this._audioService, this._storage) : super(MatchState()) {
+    _audioService.init();
 
+    // ── Nhận nước đi mới ──────────────────────────────────────
     _signalR.onReceiveMove((args) {
       if (args == null || args.isEmpty) return;
 
@@ -132,7 +135,6 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           attackerSquares: attackers,
         );
 
-        // Phát âm thanh chiếu hoặc âm thanh đi cờ bình thường
         if (isCheck == true) {
           _audioService.playCheckSound();
         } else {
@@ -141,6 +143,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       }
     });
 
+    // ── Trận kết thúc ──────────────────────────────
     _signalR.onGameOver((args) {
       if (args == null || args.isEmpty) return;
       final data = args[0] as Map<String, dynamic>;
@@ -153,32 +156,59 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         newElo: (data['newElo'] ?? data['NewElo'] ?? 0).toInt(),
       );
 
+      // Xóa matchId khi trận kết thúc
+      _storage.clearActiveMatch();
       _audioService.playGameOverSound();
+    });
+
+    // ── Reconnect: nhận lại state sau khi mất kết nối ────────────
+    _signalR.onRejoinMatch((args) {
+      if (args == null || args.isEmpty) return;
+      final data = args[0] as Map<String, dynamic>;
+
+      final matchId = data['MatchId'] ?? data['matchId'] ?? '';
+      final fen     = data['Fen']     ?? data['fen']     ?? '';
+      final color   = data['MyColor'] ?? data['myColor'] ?? 'white';
+
+      state = MatchState(
+        matchId:       matchId,
+        fen:           fen,
+        myColor:       color,
+        whiteTimeMs:   ((data['WhiteTimeLeftMs'] ?? data['whiteTimeLeftMs']) as num?)?.toDouble() ?? 1200000,
+        blackTimeMs:   ((data['BlackTimeLeftMs'] ?? data['blackTimeLeftMs']) as num?)?.toDouble() ?? 1200000,
+        opponentName:  data['OpponentName']  ?? data['opponentName']  ?? 'Đối thủ',
+        opponentLevel: (data['OpponentLevel'] ?? data['opponentLevel'] ?? 1).toInt(),
+        opponentElo:   (data['OpponentElo']   ?? data['opponentElo']  ?? 799).toInt(),
+        opponentRank:  data['OpponentRank']   ?? data['opponentRank'] ?? 'Unranked',
+      );
     });
   }
 
   void initMatch(String id, String fen, String color, [Map<String, dynamic>? opponentInfo]) {
-    String oppName = 'Đối thủ';
-    int oppLevel = 1;
-    int oppElo = 799;
-    String oppRank = 'Unranked';
+    String oppName  = 'Đối thủ';
+    int oppLevel    = 1;
+    int oppElo      = 799;
+    String oppRank  = 'Unranked';
 
     if (opponentInfo != null) {
-      oppName = opponentInfo['opponentName'] ?? opponentInfo['OpponentName'] ?? 'Đối thủ';
+      oppName  = opponentInfo['opponentName']  ?? opponentInfo['OpponentName']  ?? 'Đối thủ';
       oppLevel = (opponentInfo['opponentLevel'] ?? opponentInfo['OpponentLevel'] ?? 1).toInt();
-      oppElo = (opponentInfo['opponentElo'] ?? opponentInfo['OpponentElo'] ?? 799).toInt();
-      oppRank = opponentInfo['opponentRank'] ?? opponentInfo['OpponentRank'] ?? 'Unranked';
+      oppElo   = (opponentInfo['opponentElo']  ?? opponentInfo['OpponentElo']  ?? 799).toInt();
+      oppRank  = opponentInfo['opponentRank']  ?? opponentInfo['OpponentRank']  ?? 'Unranked';
     }
 
     state = MatchState(
-      matchId: id, 
-      fen: fen, 
-      myColor: color,
-      opponentName: oppName,
+      matchId:       id,
+      fen:           fen,
+      myColor:       color,
+      opponentName:  oppName,
       opponentLevel: oppLevel,
-      opponentElo: oppElo,
-      opponentRank: oppRank,
+      opponentElo:   oppElo,
+      opponentRank:  oppRank,
     );
+
+    // Lưu matchId xuống để hỗ trợ reconnect khi mất mạng / thoát app
+    _storage.saveActiveMatch(id);
   }
 
   void updateFen(String newFen) {
@@ -189,6 +219,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
 final matchStateProvider =
     StateNotifierProvider<MatchStateNotifier, MatchState>((ref) {
       final signalR = ref.watch(signalRServiceProvider);
-      final audio = ref.watch(audioServiceProvider);
-      return MatchStateNotifier(signalR, audio);
+      final audio   = ref.watch(audioServiceProvider);
+      final storage = ref.watch(localStorageServiceProvider);
+      return MatchStateNotifier(signalR, audio, storage);
     });

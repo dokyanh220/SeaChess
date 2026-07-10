@@ -70,6 +70,70 @@ namespace SeaChess.API.Hubs
             }
         }
 
+        /// <summary>
+        /// Client gọi ngay sau khi kết nối lại để khôi phục trận đang dở.
+        /// Server tìm matchId trong Redis và trả về toàn bộ state hiện tại.
+        /// </summary>
+        public async Task RejoinMatch()
+        {
+            var userId = Context.UserIdentifier;
+            if (userId == null) return;
+
+            // Tìm matchId đang active của user này
+            var matchId = await _gameState.GetActiveMatchForUserAsync(userId);
+            if (matchId == null)
+            {
+                await Clients.Caller.SendAsync("NoActiveMatch");
+                return;
+            }
+
+            var matchState = await _gameState.GetStateAsync(matchId);
+            if (matchState == null || matchState.Status != "Playing")
+            {
+                // Trận đã kết thúc hoặc không tồn tại → xóa key cũ
+                await _gameState.ClearActiveMatchForUserAsync(userId);
+                await Clients.Caller.SendAsync("NoActiveMatch");
+                return;
+            }
+
+            string myColor = matchState.WhitePlayerId == userId ? "white" : "black";
+            string opponentId = matchState.WhitePlayerId == userId
+                ? matchState.BlackPlayerId
+                : matchState.WhitePlayerId;
+
+            // Lấy thông tin đối thủ
+            string opponentName  = "Đối thủ";
+            int    opponentLevel = 1;
+            int    opponentElo   = 799;
+            string opponentRank  = "Unranked";
+
+            if (Guid.TryParse(opponentId, out Guid opponentGuid))
+            {
+                var opponentUser = await _userRepo.GetByIdAsync(opponentGuid);
+                if (opponentUser != null)
+                {
+                    opponentName  = opponentUser.DisplayName ?? "Đối thủ";
+                    opponentLevel = opponentUser.Experience;
+                    opponentElo   = opponentUser.Elo;
+                }
+            }
+
+            Console.WriteLine($"[Reconnect] {userId} rejoined match {matchId} as {myColor}");
+
+            await Clients.Caller.SendAsync("RejoinMatch", new
+            {
+                MatchId         = matchId,
+                Fen             = matchState.CurrentFen,
+                MyColor         = myColor,
+                WhiteTimeLeftMs = matchState.WhiteTimeLeftMs,
+                BlackTimeLeftMs = matchState.BlackTimeLeftMs,
+                OpponentName    = opponentName,
+                OpponentLevel   = opponentLevel,
+                OpponentElo     = opponentElo,
+                OpponentRank    = opponentRank,
+            });
+        }
+
         public async Task MakeMove(string matchId, string fromPosition, string toPosition, string promotionPiece)
         {
             var userId = Context.UserIdentifier;
@@ -257,6 +321,10 @@ namespace SeaChess.API.Hubs
 
             await _userRepo.UpdateAsync(whiteUser);
             await _userRepo.UpdateAsync(blackUser);
+
+            // Xóa mapping userId → matchId (đã kết thúc, không cần reconnect nữa)
+            await _gameState.ClearActiveMatchForUserAsync(matchState.WhitePlayerId);
+            await _gameState.ClearActiveMatchForUserAsync(matchState.BlackPlayerId);
 
             await Clients.User(matchState.WhitePlayerId).SendAsync("GameOver", new
             {

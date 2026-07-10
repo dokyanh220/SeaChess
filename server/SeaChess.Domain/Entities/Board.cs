@@ -113,7 +113,31 @@ namespace SeaChess.Domain.Entities
                     }
                 }
 
-                // TODO: Cập nhật CastlingRights và EnPassantTarget tại đây
+                // Cập nhật CastlingRights: vua hoặc xe di chuyển mất quyền nhập thành
+                if (piece.Type == PieceType.King)
+                {
+                    // Vua di chuyển → mất cả 2 quyền nhập thành
+                    if (piece.Color == PieceColor.White)
+                        CastlingRights = CastlingRights.Replace("K", "").Replace("Q", "");
+                    else
+                        CastlingRights = CastlingRights.Replace("k", "").Replace("q", "");
+                    if (string.IsNullOrEmpty(CastlingRights)) CastlingRights = "-";
+                }
+                else if (piece.Type == PieceType.Rook)
+                {
+                    // Xe di chuyển → mất quyền nhập thành phía đó
+                    if (piece.Color == PieceColor.White)
+                    {
+                        if (from.File == 7) CastlingRights = CastlingRights.Replace("K", "");
+                        if (from.File == 0) CastlingRights = CastlingRights.Replace("Q", "");
+                    }
+                    else
+                    {
+                        if (from.File == 7) CastlingRights = CastlingRights.Replace("k", "");
+                        if (from.File == 0) CastlingRights = CastlingRights.Replace("q", "");
+                    }
+                    if (string.IsNullOrEmpty(CastlingRights)) CastlingRights = "-";
+                }
             }
         }
 

@@ -4,10 +4,17 @@ import 'package:flutter/foundation.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 
 class SignalrService {
-  late HubConnection _hubConnection;
+  // Nullable thay vì late — tránh LateInitializationError khi connect() chưa được gọi
+  HubConnection? _hubConnection;
   final LocalStorageService _localStorageService;
 
+  // Buffer các event handlers đăng ký TRƯỚC khi connect()
+  // Key = tên Hub event, Value = handler function
+  final Map<String, Function(List<Object?>?)> _pendingHandlers = {};
+
   SignalrService(this._localStorageService);
+
+  // ── Kết nối ────────────────────────────────────────────────
 
   Future<void> connect() async {
     final token = await _localStorageService.getToken();
@@ -24,24 +31,45 @@ class SignalrService {
         .withAutomaticReconnect()
         .build();
 
-    await _hubConnection.start();
-    print("SignalR connected");
+    await _hubConnection!.start();
+    debugPrint("SignalR connected");
+
+    // Đăng ký tất cả handlers đã buffer trước khi connect()
+    _pendingHandlers.forEach((event, handler) {
+      _hubConnection!.on(event, handler);
+      debugPrint("[SignalR] Flushed pending handler: $event");
+    });
+    _pendingHandlers.clear();
   }
 
-  void onReceiveMove(Function(List<Object?>?) handler) {
-    _hubConnection.on('ReceiveMove', handler);
+  /// Helper nội bộ: nếu đã connect thì đăng ký ngay,
+  /// chưa connect thì lưu vào buffer chờ flush sau connect()
+  void _on(String event, Function(List<Object?>?) handler) {
+    if (_hubConnection != null) {
+      _hubConnection!.on(event, handler);
+    } else {
+      _pendingHandlers[event] = handler;
+    }
   }
 
-  void onMatchStarted(Function(List<Object?>?) handler) {
-    _hubConnection.on('MatchStarted', handler);
-  }
+  // ── Nhận sự kiện từ Server ────────────────────────────────
 
-  void onGameOver(Function(List<Object?>?) handler) {
-    _hubConnection.on('GameOver', handler);
-  }
+  void onReceiveMove(Function(List<Object?>?) handler) => _on('ReceiveMove', handler);
+
+  void onMatchStarted(Function(List<Object?>?) handler) => _on('MatchStarted', handler);
+
+  void onGameOver(Function(List<Object?>?) handler) => _on('GameOver', handler);
+
+  /// Nhận lại toàn bộ state trận đang dở sau khi reconnect
+  void onRejoinMatch(Function(List<Object?>?) handler) => _on('RejoinMatch', handler);
+
+  /// Server xác nhận không có trận nào đang dở
+  void onNoActiveMatch(Function(List<Object?>?) handler) => _on('NoActiveMatch', handler);
+
+  // ── Gửi lệnh lên Server ───────────────────────────────────
 
   Future<void> findMatch() async {
-    await _hubConnection.invoke('FindMatch');
+    await _hubConnection?.invoke('FindMatch');
   }
 
   Future<void> makeMove(
@@ -50,20 +78,23 @@ class SignalrService {
     String toPosition,
     String promotionPiece,
   ) async {
-    debugPrint(
-      'promotionPiece: $promotionPiece, type: ${promotionPiece.runtimeType}',
-    );
-    await _hubConnection.invoke(
+    debugPrint('promotionPiece: $promotionPiece, type: ${promotionPiece.runtimeType}');
+    await _hubConnection?.invoke(
       'MakeMove',
       args: [matchId, fromPosition, toPosition, promotionPiece],
     );
   }
 
+  /// Gọi sau khi connect() để hỏi server có trận nào đang dở không
+  Future<void> rejoinMatch() async {
+    await _hubConnection?.invoke('RejoinMatch');
+  }
+
   Future<void> cancelMatch() async {
-    await _hubConnection.invoke('CancelMatch');
+    await _hubConnection?.invoke('CancelMatch');
   }
 
   Future<void> resign(String matchId) async {
-    await _hubConnection.invoke('Resign', args: [matchId]);
+    await _hubConnection?.invoke('Resign', args: [matchId]);
   }
 }

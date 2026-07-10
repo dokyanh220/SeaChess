@@ -10,6 +10,9 @@ final localStorageProvider = Provider<LocalStorageService>((ref) {
   return LocalStorageService();
 });
 
+/// Alias để dùng nhất quán trong game_providers
+final localStorageServiceProvider = localStorageProvider;
+
 final apiClientProvider = Provider<ApiClient>((ref) {
   final localStorage = ref.watch(localStorageProvider);
   return ApiClient(localStorage);

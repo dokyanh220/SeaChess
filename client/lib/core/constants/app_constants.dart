@@ -4,10 +4,10 @@ class AppConstants {
   // Tự động chọn URL dựa vào chế độ chạy của Flutter
   static String get baseUrl {
     if (kReleaseMode) {
-      // Khi build app thật (Release)
+      // Production(Release)
       return 'http://apiseachess.anhdo.io.vn/api/';
     } else {
-      return 'http://127.0.0.1:5039/api/';
+      return 'http://192.168.1.81:5039/api/';
     }
   }
 }

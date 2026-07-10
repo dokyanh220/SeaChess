@@ -31,7 +31,7 @@ namespace SeaChess.Domain.Services
                     GenerateJumpMoves(board, startPos, piece.Color, KnightMoves, moves);
                     break;
                 case PieceType.King:
-                    GenerateJumpMoves(board, startPos, piece.Color, KnightMoves, moves);
+                    GenerateJumpMoves(board, startPos, piece.Color, KingMoves, moves);
                     GenerateCastlingMoves(board, startPos, piece.Color, moves);
                     break;
                 case PieceType.Rook:
@@ -78,7 +78,7 @@ namespace SeaChess.Domain.Services
 
             int rank = color == PieceColor.White ? 0 : 7;
             char kingSideChar = color == PieceColor.White ? 'K' : 'k';
-            char queenSideChar = color == PieceColor.White ? 'q' : 'q';
+            char queenSideChar = color == PieceColor.White ? 'Q' : 'q';
 
             if (board.CastlingRights.Contains(kingSideChar))
             {

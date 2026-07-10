@@ -7,7 +7,10 @@ class ChessBoardWidget extends StatefulWidget {
   final String myColor;
   final String kingInCheckSquare;
   final List<String> attackerSquares;
-  final Function(String from, String to)? onMove;
+
+  /// Callback khi người chơi di chuyển quân.
+  /// [promotion] là null nếu không phải phong cấp, ngược lại là 'q'/'r'/'n'/'b'
+  final Function(String from, String to, String? promotion)? onMove;
 
   const ChessBoardWidget({
     super.key,
@@ -51,12 +54,13 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
   void _handleSquareTap(String squareName, bool isMyPiece, bool canDrag) {
     // Nếu bấm vào ô có thể đi, thực hiện di chuyển
     final validMove = _validMoves.cast<Map<String, dynamic>?>().firstWhere(
-      (m) => m?['to'] == squareName, 
-      orElse: () => null
+      (m) => m?['to'] == squareName,
+      orElse: () => null,
     );
 
     if (_selectedSquare != null && validMove != null) {
-      widget.onMove?.call(_selectedSquare!, squareName);
+      final promo = _isPawnPromotion(_selectedSquare!, squareName);
+      widget.onMove?.call(_selectedSquare!, squareName, promo);
       setState(() {
         _selectedSquare = null;
         _validMoves = [];
@@ -79,6 +83,24 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
         _validMoves = [];
       });
     }
+  }
+
+  /// Kiểm tra nước đi có phải phong cấp tốt không.
+  /// Trả về 'promotion' nếu đúng, null nếu không phải.
+  /// Việc chọn quân cụ thể (q/r/n/b) do game_screen xử lý.
+  String? _isPawnPromotion(String from, String to) {
+    final chess = ch.Chess.fromFEN(widget.fen);
+    final fromPiece = chess.get(from);
+    if (fromPiece == null) return null;
+    // Tốt trắng đến hàng 8 (rank index 7), tốt đen đến hàng 1 (rank index 0)
+    final toRank = int.tryParse(to[1]) ?? 0;
+    
+    final isPawn = fromPiece.type == ch.PieceType.PAWN;
+    final isPromoRank =
+        (fromPiece.color == ch.Color.WHITE && toRank == 8) ||
+        (fromPiece.color == ch.Color.BLACK && toRank == 1);
+        
+    return (isPawn && isPromoRank) ? 'promotion' : null;
   }
 
   String _getPieceAssetPath(String pieceChar) {
@@ -130,19 +152,25 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
             String piece = boardArray[logicalIndex];
             String squareName = _getSquareName(logicalRow, logicalCol);
 
-            bool isCheckSquare = widget.kingInCheckSquare == squareName ||
+            bool isCheckSquare =
+                widget.kingInCheckSquare == squareName ||
                 widget.attackerSquares.contains(squareName);
 
-            bool isMyPiece = piece.isNotEmpty &&
+            bool isMyPiece =
+                piece.isNotEmpty &&
                 ((widget.myColor == 'white' && piece == piece.toUpperCase()) ||
-                    (widget.myColor == 'black' && piece == piece.toLowerCase()));
+                    (widget.myColor == 'black' &&
+                        piece == piece.toLowerCase()));
 
             bool canDrag = isMyTurn && isMyPiece;
 
-            Color baseColor = isLightSquare ? const Color(0xFFF0D9B5) : const Color(0xFFB58863);
-            Color coordColor = isLightSquare ? const Color(0xFFB58863) : const Color(0xFFF0D9B5);
+            Color baseColor = isLightSquare
+                ? const Color(0xFFF0D9B5)
+                : const Color(0xFFB58863);
+            Color coordColor = isLightSquare
+                ? const Color(0xFFB58863)
+                : const Color(0xFFF0D9B5);
 
-            // Xây dựng widget hiển thị quân cờ lớn hơn (Padding = 0)
             Widget pieceWidget = piece.isNotEmpty
                 ? Image.asset(_getPieceAssetPath(piece))
                 : const SizedBox.shrink();
@@ -175,7 +203,9 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
                   return Stack(
                     children: [
                       Container(color: baseColor),
-                      Container(color: Colors.red.withOpacity(_blinkAnimation.value)),
+                      Container(
+                        color: Colors.red.withOpacity(_blinkAnimation.value),
+                      ),
                     ],
                   );
                 },
@@ -199,7 +229,10 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
                   child: Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.red.withOpacity(0.8), width: 4),
+                      border: Border.all(
+                        color: Colors.red.withOpacity(0.8),
+                        width: 4,
+                      ),
                     ),
                   ),
                 );
@@ -221,10 +254,23 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
             return GestureDetector(
               onTap: () => _handleSquareTap(squareName, isMyPiece, canDrag),
               child: DragTarget<String>(
+                // Validate nước đi hợp lệ khi drag: dùng chess.dart để kiểm tra
+                // đảm bảo khi bị chiếu, chỉ các nước thoát chiếu mới được chấp nhận
+                onWillAcceptWithDetails: (details) {
+                  final fromSquare = details.data;
+                  if (fromSquare == squareName) return false;
+                  final chess = ch.Chess.fromFEN(widget.fen);
+                  final moves = chess.moves({
+                    'square': fromSquare,
+                    'verbose': true,
+                  });
+                  return moves.any((m) => (m as Map)['to'] == squareName);
+                },
                 onAcceptWithDetails: (details) {
                   final fromSquare = details.data;
                   if (fromSquare != squareName && widget.onMove != null) {
-                    widget.onMove!(fromSquare, squareName);
+                    final promo = _isPawnPromotion(fromSquare, squareName);
+                    widget.onMove!(fromSquare, squareName, promo);
                     setState(() {
                       _selectedSquare = null;
                       _validMoves = [];
@@ -240,39 +286,37 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
                       // 2. Move preview (chấm tròn hoặc viền đỏ)
                       if (isValidMove) Positioned.fill(child: movePreview),
 
-                    // 2. Tọa độ số (cột trái)
-                    if (col == 0)
-                      Positioned(
-                        top: 2,
-                        left: 4,
-                        child: Text(
-                          (8 - logicalRow).toString(),
-                          style: TextStyle(
-                            color: coordColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
+                      // 2. Tọa độ số (cột trái)
+                      if (col == 0)
+                        Positioned(
+                          top: 2,
+                          left: 4,
+                          child: Text(
+                            (8 - logicalRow).toString(),
+                            style: TextStyle(
+                              color: coordColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
                           ),
                         ),
-                      ),
 
-                    // 3. Tọa độ chữ (hàng dưới)
-                    if (row == 7)
-                      Positioned(
-                        bottom: 2,
-                        right: 4,
-                        child: Text(
-                          String.fromCharCode(97 + logicalCol),
-                          style: TextStyle(
-                            color: coordColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
+                      // 3. Tọa độ chữ (hàng dưới)
+                      if (row == 7)
+                        Positioned(
+                          bottom: 2,
+                          right: 4,
+                          child: Text(
+                            String.fromCharCode(97 + logicalCol),
+                            style: TextStyle(
+                              color: coordColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
                           ),
                         ),
-                      ),
 
-                      Positioned.fill(
-                        child: Center(child: pieceWidget),
-                      ),
+                      Positioned.fill(child: Center(child: pieceWidget)),
                     ],
                   );
                 },
