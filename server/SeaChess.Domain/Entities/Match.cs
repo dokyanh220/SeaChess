@@ -14,5 +14,8 @@ namespace SeaChess.Domain.Entities
         public DateTime StartTime { get; set; } = DateTime.UtcNow;
         public DateTime? EndTime { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsAiGame { get; set; } = false;
+        public AiDifficulty? AiDifficulty { get; set; }
+        public PieceColor? AiColor { get; set; }
     }
 }
