@@ -85,6 +85,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMatchMakingService, MatchMakingService>();
 builder.Services.AddScoped<IGameStateService, GameStateService>();
+builder.Services.AddScoped<IStockfishService, StockfishService>();
 
 var app = builder.Build();
 

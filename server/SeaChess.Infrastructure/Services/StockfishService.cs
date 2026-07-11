@@ -57,12 +57,10 @@ namespace SeaChess.Infrastructure.Services
 
         public async Task<string> GetBestMoveAsync(string fen, AiDifficulty difficulty)
         {
-                        // Đảm bảo chỉ 1 request chạy tại 1 thời điểm
             await _semaphore.WaitAsync();
             try
             {
                 var (skillLevel, depth, thinkTime) = StockfishConfig.GetConfig(difficulty);
-                // Reset engine state cho game mới
                 SendCommand("ucinewgame");
                 // Set độ khó
                 SendCommand($"setoption name Skill Level value {skillLevel}");

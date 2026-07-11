@@ -1,3 +1,5 @@
+using SeaChess.Domain.Enums;
+
 namespace SeaChess.Application.DTOs.Match
 {
     public class MatchState
@@ -14,5 +16,8 @@ namespace SeaChess.Application.DTOs.Match
 
         // Mốc thời gian đối chiếu
         public DateTimeOffset LastMoveTime { get; set; }
+        public bool IsAiGame { get; set; } = false;
+        public AiDifficulty? AiDifficulty { get; set; }
+        public PieceColor? AiColor { get; set; }
     }
 }
