@@ -35,7 +35,7 @@ namespace SeaChess.Tests
                 QueueKey,
                 userId,
                 elo,
-                It.IsAny<When>(),
+                It.IsAny<SortedSetWhen>(),
                 It.IsAny<CommandFlags>()), Times.Once);
         }
 
