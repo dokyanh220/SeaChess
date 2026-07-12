@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using SeaChess.Application.DTOs.AI;
 using SeaChess.Application.DTOs.Match;
 using SeaChess.Application.Interfaces;
 using SeaChess.Application.Services;
@@ -16,13 +17,15 @@ namespace SeaChess.API.Hubs
         private readonly IMatchMakingService _matchmaking;
         private readonly IGameStateService _gameState;
         private readonly IUserRepository _userRepo;
+        private readonly IStockfishService _stockfish;
         private const string INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-        public ChessHub(IMatchMakingService matchmaking, IGameStateService gameState, IUserRepository repository)
+        public ChessHub(IMatchMakingService matchmaking, IGameStateService gameState, IUserRepository repository, IStockfishService stockfish)
         {
             _matchmaking = matchmaking;
             _gameState = gameState;
             _userRepo = repository;
+            _stockfish = stockfish;
         }
 
         public override async Task OnConnectedAsync()
@@ -70,10 +73,108 @@ namespace SeaChess.API.Hubs
             }
         }
 
-        /// <summary>
-        /// Client gọi ngay sau khi kết nối lại để khôi phục trận đang dở.
-        /// Server tìm matchId trong Redis và trả về toàn bộ state hiện tại.
-        /// </summary>
+        public async Task StartAiGame(int difficulty, string colorPreference, int timeMinutes)
+        {
+            var userId = Context.UserIdentifier;
+            if (userId == null) return;
+
+            if (!Enum.IsDefined(typeof(AiDifficulty), difficulty))
+            {
+                await Clients.Caller.SendAsync("Error", "Cấp độ không hợp lệ");
+                return;
+            }
+
+            int[] validTimes = { 5, 10, 15, 30};
+            if (!validTimes.Contains(timeMinutes))
+            {
+                await Clients.Caller.SendAsync("Error", "Thời gian không hợp lệ");
+                return;
+            }
+
+            // Xác định màu
+            PieceColor playerColor;
+            switch (colorPreference.ToLower())
+            {
+                case "white":
+                    playerColor = PieceColor.White;
+                    break;
+                case "black":
+                    playerColor = PieceColor.Black;
+                    break;
+                default:
+                    playerColor = PieceColor.White;
+                    break;
+            }
+
+            var aiColor = playerColor == PieceColor.White ? PieceColor.Black : PieceColor.White;
+
+            // Tạo matchstate trong redis
+            var matchId = Guid.NewGuid().ToString();
+            var timeMs = timeMinutes * 60 * 1000;
+
+            var matchState = new MatchState
+            {
+                MatchID = matchId,
+                CurrentFen = INITIAL_FEN,
+                WhitePlayerId = playerColor == PieceColor.White ? userId : "AI",
+                BlackPlayerId = playerColor == PieceColor.Black ? userId : "AI",
+                WhiteTimeLeftMs = timeMs,
+                BlackTimeLeftMs = timeMs,
+                LastMoveTime = DateTimeOffset.UtcNow,
+                Status = "playing",
+                IsAiGame = true,
+                AiDifficulty = (AiDifficulty)difficulty,
+                AiColor = aiColor
+            };
+
+            // Nếu Ai đi trước
+            string? firstAiMove = null;
+            if (aiColor == PieceColor.White)
+            {
+                firstAiMove = await _stockfish.GetBestMoveAsync(INITIAL_FEN, (AiDifficulty)difficulty); // lấy bestmove mở đầu
+
+                var board = new Board(INITIAL_FEN);
+                var from = Position.Parse(firstAiMove[..2]);
+                var to = Position.Parse(firstAiMove[2..4]);
+                string? promo = firstAiMove.Length > 4 ?firstAiMove[4..] : null;
+                board.MakeMove(from, to, promo);
+
+                matchState.CurrentFen = board.ToFenString();
+                matchState.LastMoveTime = DateTimeOffset.UtcNow;
+            }
+
+            // Lưu state vào redis
+            await _gameState.SaveStateAsync(matchState);
+            await _gameState.SetActiveMatchForUserAsync(userId, matchId);
+
+            // Get user cho client
+            var user = await _userRepo.GetByIdAsync(Guid.Parse(userId));
+            string difficultyLabel = ((AiDifficulty)difficulty) switch
+            {
+                AiDifficulty.Beginner => "Mới chơi",
+                AiDifficulty.Easy => "Dễ",
+                AiDifficulty.Medium => "Trung bình",
+                AiDifficulty.Hard => "Khó",
+                _ => "AI",
+            };
+
+            // Gửi event AiGameStarted cho client
+            await Clients.Caller.SendAsync("AiGameStarted", new
+            {
+                MatchId = matchId,
+                Fen = matchState.CurrentFen,
+                MyColor = playerColor == PieceColor.White ? "white" : "black",
+                WhiteTimeMs = timeMs,
+                BlackTimeMs = timeMs,
+                Difficulty = difficulty,
+                AiMove = firstAiMove, // null(user đi trước) hoặc AI
+                OpponentName = $"Bot ({difficultyLabel})",
+                OpponentLevel = 0,
+                OpponentElo = 0,
+                OpponentRank = "AI"
+            });
+        }
+
         public async Task RejoinMatch()
         {
             var userId = Context.UserIdentifier;
@@ -225,19 +326,38 @@ namespace SeaChess.API.Hubs
 
             await _gameState.SaveStateAsync(matchState);
 
-            await Clients.Users(new[] { matchState.WhitePlayerId, matchState.BlackPlayerId }).SendAsync("ReceiveMove", new 
+            if (matchState.IsAiGame)
             {
-                From = fromPosition,
-                To = toPosition,
-                Promotion = promotionPiece,
-                NewFen = newFen,
-                WhiteTimeLeftMs = matchState.WhiteTimeLeftMs,
-                BlackTimeLeftMs = matchState.BlackTimeLeftMs,
-                IsInCheck = checkInfo.IsCheck,
-                KingSquare = checkInfo.KingPosition?.ToString(),
-                AttackerSquares = checkInfo.AttackerPositions.Select(p => p.ToString()).ToList()
-            });
+                await Clients.Caller.SendAsync("ReceiveMove", new 
+                {
+                    From = fromPosition,
+                    To = toPosition,
+                    Promotion = promotionPiece,
+                    NewFen = newFen,
+                    WhiteTimeLeftMs = matchState.WhiteTimeLeftMs,
+                    BlackTimeLeftMs = matchState.BlackTimeLeftMs,
+                    IsInCheck = checkInfo.IsCheck,
+                    KingSquare = checkInfo.KingPosition?.ToString(),
+                    AttackerSquares = checkInfo.AttackerPositions.Select(p => p.ToString()).ToList()
+                });
+            }
+            else
+            {
+                await Clients.Users(new[] { matchState.WhitePlayerId, matchState.BlackPlayerId }).SendAsync("ReceiveMove", new 
+                {
+                    From = fromPosition,
+                    To = toPosition,
+                    Promotion = promotionPiece,
+                    NewFen = newFen,
+                    WhiteTimeLeftMs = matchState.WhiteTimeLeftMs,
+                    BlackTimeLeftMs = matchState.BlackTimeLeftMs,
+                    IsInCheck = checkInfo.IsCheck,
+                    KingSquare = checkInfo.KingPosition?.ToString(),
+                    AttackerSquares = checkInfo.AttackerPositions.Select(p => p.ToString()).ToList()
+                });
+            }
 
+            // Check bí và luật để endgame
             if (GameStateAnalyzer.IsCheckmate(board, nextTurnColor))
             {
                 string winnerId = userId;
@@ -256,6 +376,77 @@ namespace SeaChess.API.Hubs
                 await EndGame(matchState, null, "FiftyMoveRule");
                 return;
             }
+
+            // Ai Game
+            if (matchState.IsAiGame)
+            {
+                var aiMoveStr = await _stockfish.GetBestMoveAsync(
+                    matchState.CurrentFen, matchState.AiDifficulty!.Value);
+                
+                var aiFrom = Position.Parse(aiMoveStr[..2]);
+                var aiTo = Position.Parse(aiMoveStr[2..4]);
+                string? aiPromo = aiMoveStr.Length > 4 ? aiMoveStr[4..] : null;
+
+                var aiBoard = new Board(matchState.CurrentFen);
+                aiBoard.MakeMove(aiFrom, aiTo, aiPromo);
+
+                string aiFen = aiBoard.ToFenString();
+
+                // Trừ thời gian suy nghĩ Ai = thinkTime từ config
+                var (_, _, thinkTime) = StockfishConfig.GetConfig(matchState.AiDifficulty!.Value);
+                if (matchState.AiColor == PieceColor.White)
+                {
+                    matchState.WhiteTimeLeftMs -= thinkTime;
+                }
+                else
+                {
+                    matchState.BlackTimeLeftMs -= thinkTime;
+                }
+
+                matchState.CurrentFen = aiFen;
+                matchState.LastMoveTime = DateTimeOffset.UtcNow;
+
+                await _gameState.SaveStateAsync(matchState);
+
+                // Kiểm tra state sau nước Ai
+                PieceColor humanColor = matchState.AiColor == PieceColor.White ? PieceColor.White : PieceColor.Black;
+                var aiCheckInfo = GameStateAnalyzer.GetCheckInfo(aiBoard, humanColor);
+
+                // Gửi nước đi về client (receiveMove)
+                await Clients.Caller.SendAsync("ReceiveMove", new
+                {
+                    From = aiMoveStr[..2],
+                    To = aiMoveStr[2..4],
+                    Promotion = aiPromo ?? "",
+                    NewFen = aiFen,
+                    WhiteTimeLeftMs = matchState.WhiteTimeLeftMs,
+                    BlackTimeLeftMs = matchState.BlackTimeLeftMs,
+                    IsInCheck = aiCheckInfo.IsCheck,
+                    KingSquare = aiCheckInfo.KingPosition?.ToString(),
+                    AttackerSquares = aiCheckInfo.AttackerPositions
+                        .Select(p => p.ToString()).ToList()
+                });
+
+                // Check bí và luật để endgame
+                if (GameStateAnalyzer.IsCheckmate(aiBoard, humanColor))
+                {
+                    string winnerId = userId;
+                    await EndGame(matchState, winnerId, "Checkmate");
+                    return;
+                }
+
+                if (GameStateAnalyzer.IsStalemate(aiBoard, nextTurnColor))
+                {
+                    await EndGame(matchState, null, "Stalemate");
+                    return;
+                }
+
+                if (GameStateAnalyzer.IsFiftyMoveRule(aiBoard))
+                {
+                    await EndGame(matchState, null, "FiftyMoveRule");
+                    return;
+                }
+            }
         }
 
         private async Task EndGame(MatchState matchState, string? winnerId, string reason)
@@ -263,6 +454,40 @@ namespace SeaChess.API.Hubs
             if (matchState.Status != "Playing") return;
             matchState.Status = "Finished";
             await _gameState.SaveStateAsync(matchState);
+
+            if (matchState.IsAiGame)
+            {
+                string humanId = matchState.WhitePlayerId == "AI" ? matchState.BlackPlayerId : matchState.WhitePlayerId;
+                string humanColor = matchState.WhitePlayerId == "AI" ? "black" : "white";
+
+                string resultForHuman;
+                if (winnerId == null)
+                {
+                    resultForHuman = "draw";
+                }
+                else if (winnerId == "AI")
+                {
+                    resultForHuman = "lose";
+                }
+                else
+                {
+                    resultForHuman = "win";
+                }
+
+                await _gameState.ClearActiveMatchForUserAsync(humanId);
+
+                await Clients.User(humanId).SendAsync("GameOver", new
+                {
+                    Result = resultForHuman,
+                    Reason = reason,
+                    EloChange = 0,
+                    NewElo = 0,
+                });
+
+                Console.WriteLine($"[AI Game Over] {matchState.MatchID} | " +
+                    $"Result: {resultForHuman} | Reason: {reason}");
+                return;
+            }
 
             var whiteUser = await _userRepo.GetByIdAsync(Guid.Parse(matchState.WhitePlayerId));
             var blackUser = await _userRepo.GetByIdAsync(Guid.Parse(matchState.BlackPlayerId));
@@ -354,6 +579,12 @@ namespace SeaChess.API.Hubs
 
             var matchState = await _gameState.GetStateAsync(matchId);
             if (matchState == null || matchState.Status != "Playing") return;
+
+            if (matchState.IsAiGame)
+            {
+                await EndGame(matchState, "AI", "Resign");
+                return;
+            }
 
             string winnerId = matchState.WhitePlayerId == userId
                 ? matchState.BlackPlayerId
