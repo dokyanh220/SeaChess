@@ -45,6 +45,8 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
     setState(() => _isLoading = true);
     try {
       final signalR = ref.read(signalRServiceProvider);
+      // Đảm bảo SignalR đang kết nối trước khi gửi lệnh
+      await signalR.ensureConnected();
       await signalR.startAiGame(
         difficulty: _difficulty.value,
         colorPreference: _color.value,

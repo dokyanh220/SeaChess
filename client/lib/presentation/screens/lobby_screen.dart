@@ -669,7 +669,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   : () async {
                       setState(() => _isSearching = true);
                       _startSearchTimer();
-                      await ref.read(signalRServiceProvider).findMatch();
+                      final signalR = ref.read(signalRServiceProvider);
+                      await signalR.ensureConnected();
+                      await signalR.findMatch();
                     },
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,

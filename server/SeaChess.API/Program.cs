@@ -102,10 +102,10 @@ app.MapGet("/health", () =>
 .WithName("health");
 
 app.UseCors("SeaChessCorsPolicy");
-// Chuẩn bị Endpoint cho SignalR Hub (Task 2 sẽ định nghĩa class ChessHub)
-app.MapHub<ChessHub>("/hubs/chess");
-app.MapControllers();
-app.UseHttpsRedirection();
 app.UseAuthentication(); 
 app.UseAuthorization();
+
+// Chuẩn bị Endpoint cho SignalR Hub
+app.MapHub<ChessHub>("/hubs/chess");
+app.MapControllers();
 app.Run();

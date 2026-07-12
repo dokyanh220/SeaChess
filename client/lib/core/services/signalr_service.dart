@@ -14,9 +14,18 @@ class SignalrService {
 
   SignalrService(this._localStorageService);
 
+  // ── Kiểm tra trạng thái ──────────────────────────────────
+
+  bool get isConnected =>
+      _hubConnection != null &&
+      _hubConnection!.state == HubConnectionState.Connected;
+
   // ── Kết nối ────────────────────────────────────────────────
 
   Future<void> connect() async {
+    // Nếu đã Connected rồi thì không cần connect lại
+    if (isConnected) return;
+
     final token = await _localStorageService.getToken();
 
     final hubUrl = '${AppConstants.baseUrl.replaceAll('/api/', '')}/hubs/chess';
@@ -40,6 +49,14 @@ class SignalrService {
       debugPrint("[SignalR] Flushed pending handler: $event");
     });
     _pendingHandlers.clear();
+  }
+
+  /// Đảm bảo kết nối đang sống, nếu chưa thì tự kết nối lại
+  Future<void> ensureConnected() async {
+    if (!isConnected) {
+      debugPrint('[SignalR] Chưa Connected, đang tự động kết nối lại...');
+      await connect();
+    }
   }
 
   /// Helper nội bộ: nếu đã connect thì đăng ký ngay,
