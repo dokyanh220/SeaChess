@@ -18,6 +18,10 @@ class MatchState {
   final String gameReason;
   final int eloChange;
   final int newElo;
+  // ═══ AI Game Fields ═══
+  final bool isAiGame;
+  final int? aiDifficulty;
+  final bool isAiThinking;
   // Thông tin đối thủ
   final String opponentName;
   final int opponentLevel;
@@ -43,6 +47,9 @@ class MatchState {
     this.gameReason = '',
     this.eloChange = 0,
     this.newElo = 0,
+    this.isAiGame = false,
+    this.aiDifficulty,
+    this.isAiThinking = false,
     this.opponentName = 'Đối thủ',
     this.opponentLevel = 0,
     this.opponentElo = 0,
@@ -67,6 +74,9 @@ class MatchState {
     String? gameReason,
     int? eloChange,
     int? newElo,
+    bool? isAiGame,
+    int? aiDifficulty,
+    bool? isAiThinking,
     String? opponentName,
     int? opponentLevel,
     int? opponentElo,
@@ -90,6 +100,9 @@ class MatchState {
       gameReason: gameReason ?? this.gameReason,
       eloChange: eloChange ?? this.eloChange,
       newElo: newElo ?? this.newElo,
+      isAiGame: isAiGame ?? this.isAiGame,
+      aiDifficulty: aiDifficulty ?? this.aiDifficulty,
+      isAiThinking: isAiThinking ?? this.isAiThinking,
       opponentName: opponentName ?? this.opponentName,
       opponentLevel: opponentLevel ?? this.opponentLevel,
       opponentElo: opponentElo ?? this.opponentElo,
@@ -133,6 +146,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           isInCheck: isCheck,
           kingInCheckSquare: kingSquare,
           attackerSquares: attackers,
+          isAiThinking: false,
         );
 
         if (isCheck == true) {
@@ -182,6 +196,35 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         opponentRank:  data['OpponentRank']   ?? data['opponentRank'] ?? 'Unranked',
       );
     });
+
+    // ── Trận AI bắt đầu ─────────────────────────────────────
+    _signalR.onAiGameStarted((args) {
+      if (args == null || args.isEmpty) return;
+      final data = args[0] as Map<String, dynamic>;
+
+      final matchId    = data['MatchId']    ?? data['matchId']    ?? '';
+      final fen        = data['Fen']        ?? data['fen']        ?? '';
+      final myColor    = data['MyColor']    ?? data['myColor']    ?? 'white';
+      final difficulty = (data['Difficulty'] ?? data['difficulty'] ?? 2).toInt();
+
+      state = MatchState(
+        matchId:       matchId,
+        fen:           fen,
+        myColor:       myColor,
+        whiteTimeMs:   ((data['WhiteTimeLeftMs'] ?? data['whiteTimeLeftMs']) as num?)?.toDouble() ?? 600000,
+        blackTimeMs:   ((data['BlackTimeLeftMs'] ?? data['blackTimeLeftMs']) as num?)?.toDouble() ?? 600000,
+        isAiGame:      true,
+        aiDifficulty:  difficulty,
+        isAiThinking:  false,
+        opponentName:  data['OpponentName']  ?? data['opponentName']  ?? 'Stockfish',
+        opponentLevel: (data['OpponentLevel'] ?? data['opponentLevel'] ?? 0).toInt(),
+        opponentElo:   (data['OpponentElo']   ?? data['opponentElo']   ?? 0).toInt(),
+        opponentRank:  data['OpponentRank']   ?? data['opponentRank']  ?? 'AI',
+      );
+
+      // Lưu matchId cho reconnect
+      _storage.saveActiveMatch(matchId);
+    });
   }
 
   void initMatch(String id, String fen, String color, [Map<String, dynamic>? opponentInfo]) {
@@ -213,6 +256,10 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
 
   void updateFen(String newFen) {
     state = state.coppyWith(fen: newFen);
+  }
+
+  void setAiThinking(bool thinking) {
+    state = state.coppyWith(isAiThinking: thinking);
   }
 }
 

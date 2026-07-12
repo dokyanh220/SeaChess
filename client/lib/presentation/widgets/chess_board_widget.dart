@@ -8,6 +8,9 @@ class ChessBoardWidget extends StatefulWidget {
   final String kingInCheckSquare;
   final List<String> attackerSquares;
 
+  /// Lock board khi AI đang suy nghĩ
+  final bool isLocked;
+
   /// Callback khi người chơi di chuyển quân.
   /// [promotion] là null nếu không phải phong cấp, ngược lại là 'q'/'r'/'n'/'b'
   final Function(String from, String to, String? promotion)? onMove;
@@ -18,6 +21,7 @@ class ChessBoardWidget extends StatefulWidget {
     this.myColor = 'white',
     this.kingInCheckSquare = '',
     this.attackerSquares = const [],
+    this.isLocked = false,
     this.onMove,
   });
 
@@ -52,6 +56,9 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
   }
 
   void _handleSquareTap(String squareName, bool isMyPiece, bool canDrag) {
+    // ═══ Lock khi AI đang suy nghĩ ═══
+    if (widget.isLocked) return;
+
     // Nếu bấm vào ô có thể đi, thực hiện di chuyển
     final validMove = _validMoves.cast<Map<String, dynamic>?>().firstWhere(
       (m) => m?['to'] == squareName,

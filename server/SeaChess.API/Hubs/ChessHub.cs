@@ -101,6 +101,9 @@ namespace SeaChess.API.Hubs
                 case "black":
                     playerColor = PieceColor.Black;
                     break;
+                case "random":
+                    playerColor = Random.Shared.Next(2) == 0 ? PieceColor.White : PieceColor.Black;
+                    break;
                 default:
                     playerColor = PieceColor.White;
                     break;
@@ -121,7 +124,7 @@ namespace SeaChess.API.Hubs
                 WhiteTimeLeftMs = timeMs,
                 BlackTimeLeftMs = timeMs,
                 LastMoveTime = DateTimeOffset.UtcNow,
-                Status = "playing",
+                Status = "Playing",
                 IsAiGame = true,
                 AiDifficulty = (AiDifficulty)difficulty,
                 AiColor = aiColor
@@ -164,8 +167,8 @@ namespace SeaChess.API.Hubs
                 MatchId = matchId,
                 Fen = matchState.CurrentFen,
                 MyColor = playerColor == PieceColor.White ? "white" : "black",
-                WhiteTimeMs = timeMs,
-                BlackTimeMs = timeMs,
+                WhiteTimeLeftMs = timeMs,
+                BlackTimeLeftMs = timeMs,
                 Difficulty = difficulty,
                 AiMove = firstAiMove, // null(user đi trước) hoặc AI
                 OpponentName = $"Bot ({difficultyLabel})",
@@ -380,6 +383,7 @@ namespace SeaChess.API.Hubs
             // Ai Game
             if (matchState.IsAiGame)
             {
+                await Task.Delay(500); // Thêm delay để giao diện mượt mà hơn
                 var aiMoveStr = await _stockfish.GetBestMoveAsync(
                     matchState.CurrentFen, matchState.AiDifficulty!.Value);
                 
@@ -409,7 +413,7 @@ namespace SeaChess.API.Hubs
                 await _gameState.SaveStateAsync(matchState);
 
                 // Kiểm tra state sau nước Ai
-                PieceColor humanColor = matchState.AiColor == PieceColor.White ? PieceColor.White : PieceColor.Black;
+                PieceColor humanColor = matchState.AiColor == PieceColor.White ? PieceColor.Black : PieceColor.White;
                 var aiCheckInfo = GameStateAnalyzer.GetCheckInfo(aiBoard, humanColor);
 
                 // Gửi nước đi về client (receiveMove)

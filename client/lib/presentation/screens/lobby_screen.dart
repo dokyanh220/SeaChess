@@ -4,6 +4,7 @@ import 'package:client/domain/utils/rank_helper.dart';
 import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:client/presentation/providers/game_providers.dart';
 import 'package:client/presentation/screens/game_screen.dart';
+import 'package:client/presentation/screens/ai_setup_screen.dart';
 import 'package:client/presentation/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -183,9 +184,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
           if (index == 3) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
-            );
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
           } else if (index != 0) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -197,10 +198,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
           }
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_filled),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.leaderboard_rounded),
             label: 'Ranks',
@@ -225,10 +223,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh.withOpacity(0.6),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.08),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
       ),
       child: Column(
         children: [
@@ -433,10 +428,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainer.withOpacity(0.6),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.06),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
       ),
       child: Column(
         children: [
@@ -611,59 +603,93 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
       );
     }
 
-    // Nút Tìm Trận
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF3B82F6), Color(0xFF7C3AED)],
-          ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF3B82F6).withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-          ),
-          onPressed: _isConnecting
-              ? null
-              : () async {
-                  setState(() => _isSearching = true);
-                  _startSearchTimer();
-                  await ref.read(signalRServiceProvider).findMatch();
-                },
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '⚔️',
-                style: TextStyle(fontSize: 22),
+    // ═══ Nút Đấu với Máy + Tìm Trận ═══
+    return Column(
+      children: [
+        // Nút Đấu với Máy
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: colorScheme.primaryContainer),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
               ),
-              SizedBox(width: 10),
-              Text(
-                'Tìm Trận',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+            ),
+            onPressed: _isConnecting
+                ? null
+                : () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AiSetupScreen()),
+                    );
+                  },
+            icon: const Text('🤖', style: TextStyle(fontSize: 22)),
+            label: Text(
+              'Đấu với Máy',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.primary,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Nút Tìm Trận
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF3B82F6), Color(0xFF7C3AED)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF3B82F6).withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
                 ),
               ),
-            ],
+              onPressed: _isConnecting
+                  ? null
+                  : () async {
+                      setState(() => _isSearching = true);
+                      _startSearchTimer();
+                      await ref.read(signalRServiceProvider).findMatch();
+                    },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('⚔️', style: TextStyle(fontSize: 22)),
+                  SizedBox(width: 10),
+                  Text(
+                    'Tìm Trận',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

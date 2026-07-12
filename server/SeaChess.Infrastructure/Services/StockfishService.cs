@@ -2,7 +2,9 @@ using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using SeaChess.Application.DTOs.AI;
 using SeaChess.Application.Interfaces;
+using SeaChess.Domain.Entities;
 using SeaChess.Domain.Enums;
+using SeaChess.Domain.Services;
 
 namespace SeaChess.Infrastructure.Services
 {
@@ -60,10 +62,46 @@ namespace SeaChess.Infrastructure.Services
             await _semaphore.WaitAsync();
             try
             {
+                if (difficulty == AiDifficulty.Beginner)
+                {
+                    // Chế độ Beginner: 50% tỉ lệ đi một nước hợp lệ ngẫu nhiên (chấp nhận mắc sai lầm ngớ ngẩn)
+                    if (Random.Shared.Next(100) < 50)
+                    {
+                        var board = new Board(fen);
+                        string[] parts = fen.Split(' ');
+                        PieceColor color = parts.Length > 1 && parts[1] == "b" ? PieceColor.Black : PieceColor.White;
+                        var legalMoves = GameStateAnalyzer.GetLegalMoves(board, color);
+                        if (legalMoves.Count > 0)
+                        {
+                            var rm = legalMoves[Random.Shared.Next(legalMoves.Count)];
+                            string promo = "";
+                            if (board.Squares.TryGetValue(rm.From, out var p) && p.Type == PieceType.Pawn)
+                            {
+                                if ((color == PieceColor.White && rm.To.Rank == 7) || (color == PieceColor.Black && rm.To.Rank == 0))
+                                    promo = "q";
+                            }
+                            string rmStr = $"{rm.From}{rm.To}{promo}";
+                            Console.WriteLine($"[Stockfish] (Beginner Random) FEN: {fen} | BestMove: {rmStr}");
+                            return rmStr;
+                        }
+                    }
+                }
+
                 var (skillLevel, depth, thinkTime) = StockfishConfig.GetConfig(difficulty);
                 SendCommand("ucinewgame");
-                // Set độ khó
-                SendCommand($"setoption name Skill Level value {skillLevel}");
+                
+                if (difficulty == AiDifficulty.Beginner || difficulty == AiDifficulty.Easy)
+                {
+                    // Stockfish hỗ trợ giới hạn sức mạnh bằng Elo
+                    SendCommand("setoption name UCI_LimitStrength value true");
+                    SendCommand($"setoption name UCI_Elo value {(difficulty == AiDifficulty.Beginner ? 1320 : 1500)}");
+                    SendCommand("setoption name Skill Level value 0");
+                }
+                else
+                {
+                    SendCommand("setoption name UCI_LimitStrength value false");
+                    SendCommand($"setoption name Skill Level value {skillLevel}");
+                }
                 // Đợi engine sẵn sàng
                 SendCommand("isready");
                 WaitForResponse("readyok");

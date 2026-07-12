@@ -108,9 +108,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         matchState.isInCheck ? matchState.kingInCheckSquare : '',
                     attackerSquares:
                         matchState.isInCheck ? matchState.attackerSquares : const [],
+                    isLocked: matchState.isAiThinking,
                     onMove: (from, to, promotion) {
                       final matchId = ref.read(matchStateProvider).matchId;
                       print("[Client: $matchId] đánh từ $from đến $to");
+
+                      // ═══ Set AI thinking state TRƯỚC khi gọi makeMove ═══
+                      if (matchState.isAiGame) {
+                        ref.read(matchStateProvider.notifier).setAiThinking(true);
+                      }
+
                       if (promotion != null) {
                         // Tốt phong cấp: hỏi người dùng chọn quân
                         _showPromotionDialog(context, matchId, from, to);
@@ -124,6 +131,39 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ),
               ),
             ),
+
+            // ========== AI THINKING INDICATOR ==========
+            if (matchState.isAiGame && matchState.isAiThinking)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.tertiary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'AI đang suy nghĩ...',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colorScheme.tertiary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // ========== ACTION BUTTONS & MY TIMER ==========
             _buildActionButtonsAndTimer(matchState, myTimeMs, isMyTurn, colorScheme),

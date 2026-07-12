@@ -66,6 +66,11 @@ class SignalrService {
   /// Server xác nhận không có trận nào đang dở
   void onNoActiveMatch(Function(List<Object?>?) handler) => _on('NoActiveMatch', handler);
 
+  // ── Nhận sự kiện AI ──────────────────────────────────────
+
+  /// Server trả về khi trận AI được tạo thành công
+  void onAiGameStarted(Function(List<Object?>?) handler) => _on('AiGameStarted', handler);
+
   // ── Gửi lệnh lên Server ───────────────────────────────────
 
   Future<void> findMatch() async {
@@ -96,5 +101,19 @@ class SignalrService {
 
   Future<void> resign(String matchId) async {
     await _hubConnection?.invoke('Resign', args: [matchId]);
+  }
+
+  // ── AI Game ────────────────────────────────────────────────
+
+  /// Gọi Hub method StartAiGame
+  Future<void> startAiGame({
+    required int difficulty,
+    required String colorPreference,
+    required int timeMinutes,
+  }) async {
+    await _hubConnection?.invoke(
+      'StartAiGame',
+      args: [difficulty, colorPreference, timeMinutes],
+    );
   }
 }
