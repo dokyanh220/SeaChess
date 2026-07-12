@@ -14,6 +14,7 @@ namespace SeaChess.Infrastructure.Services
         private StreamWriter? _writer;
         private StreamReader? _reader;
         private readonly string _enginePath;
+        private bool _initialized = false;
 
         // SemaphoreSlim(1,1) = chỉ cho 1 request chạy tại 1 thời điểm
         // Vì Stockfish process là single-threaded, gửi 2 lệnh cùng lúc sẽ lỗi
@@ -22,7 +23,20 @@ namespace SeaChess.Infrastructure.Services
         public StockfishService(IConfiguration config)
         {
             _enginePath = config["Stockfish:Path"] ?? "stockfish";
-            InitializeEngine();
+            // Không khởi tạo engine ngay ở constructor nữa
+            // Sẽ khởi tạo lần đầu khi cần (lazy init)
+        }
+
+        /// <summary>
+        /// Đảm bảo engine đã được khởi tạo trước khi sử dụng
+        /// </summary>
+        private void EnsureInitialized()
+        {
+            if (!_initialized)
+            {
+                InitializeEngine();
+                _initialized = true;
+            }
         }
 
         private void InitializeEngine()
@@ -62,6 +76,7 @@ namespace SeaChess.Infrastructure.Services
             await _semaphore.WaitAsync();
             try
             {
+                EnsureInitialized();
                 if (difficulty == AiDifficulty.Beginner)
                 {
                     // Chế độ Beginner: 50% tỉ lệ đi một nước hợp lệ ngẫu nhiên (chấp nhận mắc sai lầm ngớ ngẩn)

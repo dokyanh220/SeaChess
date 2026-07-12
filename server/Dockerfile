@@ -20,8 +20,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Cài đặt Stockfish trực tiếp vào trong Docker container
-RUN apt-get update && apt-get install -y stockfish && rm -rf /var/lib/apt/lists/*
+# Cài đặt Stockfish và tạo symlink vào /usr/local/bin (nằm trong PATH)
+RUN apt-get update && apt-get install -y stockfish && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/games/stockfish /usr/local/bin/stockfish
 
 EXPOSE 5039
 ENV ASPNETCORE_URLS=http://+:5039
