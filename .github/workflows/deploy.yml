@@ -45,6 +45,10 @@ jobs:
           script: |
             cd ~/SeaChess
 
+            # Tạo file .env từ GitHub Secrets
+            echo "DB_CONNECTION_STRING=${{ secrets.DB_CONNECTION_STRING }}" > .env
+            echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}" >> .env
+
             # Pull latest code
             git pull origin master
 
