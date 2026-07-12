@@ -10,6 +10,7 @@ services:
       - JwtSettings__Issuer=SeaChessAPI
       - JwtSettings__Audience=SeaChessClient
       - ASPNETCORE_ENVIRONMENT=Production
+      - Stockfish__Path=stockfish
     depends_on:
       - redis
     restart: unless-stopped
