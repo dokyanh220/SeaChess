@@ -4,6 +4,6 @@ namespace SeaChess.Application.Interfaces
 {
     public interface IUserService
     {
-        Task<UserProfileResponse> GetUserProfileAsync(Guid userId);
+        Task<UserProfileResponse?> GetUserProfileAsync(Guid userId);
     }
 }

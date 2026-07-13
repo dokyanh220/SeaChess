@@ -13,7 +13,7 @@ namespace SeaChess.Application.Services
             _context = context;
         }
 
-        public async Task<UserProfileResponse> GetUserProfileAsync(Guid userId)
+        public async Task<UserProfileResponse?> GetUserProfileAsync(Guid userId)
         {
             var user = await _context.GetByIdAsync(userId);
             if (user == null) return null;

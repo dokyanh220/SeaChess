@@ -397,7 +397,7 @@ namespace SeaChess.API.Hubs
                 string aiFen = aiBoard.ToFenString();
 
                 // Trừ thời gian suy nghĩ Ai = thinkTime từ config
-                var (_, _, thinkTime) = StockfishConfig.GetConfig(matchState.AiDifficulty!.Value);
+                var thinkTime = StockfishConfig.GetSettings(matchState.AiDifficulty!.Value).ThinkTimeMs;
                 if (matchState.AiColor == PieceColor.White)
                 {
                     matchState.WhiteTimeLeftMs -= thinkTime;
