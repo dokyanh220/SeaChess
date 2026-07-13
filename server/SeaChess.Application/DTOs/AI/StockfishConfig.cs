@@ -2,17 +2,35 @@ using SeaChess.Domain.Enums;
 
 namespace SeaChess.Application.DTOs.AI
 {
+    public class AiSettings
+    {
+        public bool UseElo { get; set; }
+        public int Elo { get; set; }
+        public int SkillLevel { get; set; }
+        public int Depth { get; set; }
+        public int ThinkTimeMs { get; set; }
+        public int RandomMoveChance { get; set; }
+    }
+
     public static class StockfishConfig
     {
-        public static (int SkillLevel, int Depth, int ThinkTimeMs) GetConfig(AiDifficulty difficulty)
+        public static AiSettings GetSettings(AiDifficulty difficulty)
         {
             return difficulty switch
             {
-                AiDifficulty.Beginner => (0, 1, 100),     // Đi bậy, rất yếu
-                AiDifficulty.Easy    => (3, 3, 200),      // Yếu, mắc lỗi cơ bản
-                AiDifficulty.Medium  => (8, 6, 400),      // Trung bình
-                AiDifficulty.Hard    => (14, 10, 800),    // Mạnh, ít sai lầm
-                _ => (8, 6, 400)
+                // Rất ngáo, 50% đi bậy
+                AiDifficulty.Beginner => new AiSettings { UseElo = true, Elo = 1320, SkillLevel = 0, Depth = 1, ThinkTimeMs = 100, RandomMoveChance = 50 },
+                
+                // Dễ, chỉ khó hơn beginner 1 chút (1350 Elo, sâu 2, không đi bậy)
+                AiDifficulty.Easy => new AiSettings { UseElo = true, Elo = 1350, SkillLevel = 0, Depth = 2, ThinkTimeMs = 200, RandomMoveChance = 0 },
+                
+                // Medium: Vừa phải như một người chơi đồng cấp (~1500 Elo)
+                AiDifficulty.Medium => new AiSettings { UseElo = true, Elo = 1500, SkillLevel = 3, Depth = 4, ThinkTimeMs = 400, RandomMoveChance = 0 },
+                
+                // Hard: Khó, giới hạn bằng Skill Level cao
+                AiDifficulty.Hard => new AiSettings { UseElo = false, Elo = 0, SkillLevel = 14, Depth = 10, ThinkTimeMs = 800, RandomMoveChance = 0 },
+                
+                _ => new AiSettings { UseElo = true, Elo = 1500, SkillLevel = 3, Depth = 4, ThinkTimeMs = 400, RandomMoveChance = 0 }
             };
         }
     }

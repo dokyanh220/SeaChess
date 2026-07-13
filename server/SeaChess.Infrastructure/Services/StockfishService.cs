@@ -77,55 +77,41 @@ namespace SeaChess.Infrastructure.Services
             try
             {
                 EnsureInitialized();
-                if (difficulty == AiDifficulty.Beginner)
+
+                var settings = StockfishConfig.GetSettings(difficulty);
+
+                // 1. Kiểm tra Random Move (cho Beginner)
+                if (settings.RandomMoveChance > 0 && Random.Shared.Next(100) < settings.RandomMoveChance)
                 {
-                    // Chế độ Beginner: 50% tỉ lệ đi một nước hợp lệ ngẫu nhiên (chấp nhận mắc sai lầm ngớ ngẩn)
-                    if (Random.Shared.Next(100) < 50)
+                    string? randomMove = GetRandomLegalMove(fen);
+                    if (randomMove != null)
                     {
-                        var board = new Board(fen);
-                        string[] parts = fen.Split(' ');
-                        PieceColor color = parts.Length > 1 && parts[1] == "b" ? PieceColor.Black : PieceColor.White;
-                        var legalMoves = GameStateAnalyzer.GetLegalMoves(board, color);
-                        if (legalMoves.Count > 0)
-                        {
-                            var rm = legalMoves[Random.Shared.Next(legalMoves.Count)];
-                            string promo = "";
-                            if (board.Squares.TryGetValue(rm.From, out var p) && p.Type == PieceType.Pawn)
-                            {
-                                if ((color == PieceColor.White && rm.To.Rank == 7) || (color == PieceColor.Black && rm.To.Rank == 0))
-                                    promo = "q";
-                            }
-                            string rmStr = $"{rm.From}{rm.To}{promo}";
-                            Console.WriteLine($"[Stockfish] (Beginner Random) FEN: {fen} | BestMove: {rmStr}");
-                            return rmStr;
-                        }
+                        Console.WriteLine($"[Stockfish] (Random) FEN: {fen} | BestMove: {randomMove}");
+                        return randomMove;
                     }
                 }
 
-                var (skillLevel, depth, thinkTime) = StockfishConfig.GetConfig(difficulty);
+                // 2. Cấu hình Stockfish theo AiSettings
                 SendCommand("ucinewgame");
                 
-                if (difficulty == AiDifficulty.Beginner || difficulty == AiDifficulty.Easy)
+                if (settings.UseElo)
                 {
-                    // Stockfish hỗ trợ giới hạn sức mạnh bằng Elo
                     SendCommand("setoption name UCI_LimitStrength value true");
-                    SendCommand($"setoption name UCI_Elo value {(difficulty == AiDifficulty.Beginner ? 1320 : 1500)}");
-                    SendCommand("setoption name Skill Level value 0");
+                    SendCommand($"setoption name UCI_Elo value {settings.Elo}");
+                    SendCommand($"setoption name Skill Level value {settings.SkillLevel}");
                 }
                 else
                 {
                     SendCommand("setoption name UCI_LimitStrength value false");
-                    SendCommand($"setoption name Skill Level value {skillLevel}");
+                    SendCommand($"setoption name Skill Level value {settings.SkillLevel}");
                 }
-                // Đợi engine sẵn sàng
+                
                 SendCommand("isready");
                 WaitForResponse("readyok");
-                // Đặt vị trí bàn cờ bằng FEN
+                
                 SendCommand($"position fen {fen}");
-                // Yêu cầu tìm nước đi tốt nhất
-                // depth = số nước nhìn trước, movetime = thời gian tối đa (ms)
-                SendCommand($"go depth {depth} movetime {thinkTime}");
-                // Đọc output cho đến khi gặp "bestmove ..."
+                SendCommand($"go depth {settings.Depth} movetime {settings.ThinkTimeMs}");
+                
                 var bestMove = await ReadBestMoveAsync();
                 Console.WriteLine($"[Stockfish] FEN: {fen} | Difficulty: {difficulty} | BestMove: {bestMove}");
                 return bestMove;
@@ -134,6 +120,27 @@ namespace SeaChess.Infrastructure.Services
             {
                 _semaphore.Release();
             }
+        }
+
+        private string? GetRandomLegalMove(string fen)
+        {
+            var board = new Board(fen);
+            string[] parts = fen.Split(' ');
+            PieceColor color = parts.Length > 1 && parts[1] == "b" ? PieceColor.Black : PieceColor.White;
+            var legalMoves = GameStateAnalyzer.GetLegalMoves(board, color);
+            
+            if (legalMoves.Count > 0)
+            {
+                var rm = legalMoves[Random.Shared.Next(legalMoves.Count)];
+                string promo = "";
+                if (board.Squares.TryGetValue(rm.From, out var p) && p.Type == PieceType.Pawn)
+                {
+                    if ((color == PieceColor.White && rm.To.Rank == 7) || (color == PieceColor.Black && rm.To.Rank == 0))
+                        promo = "q";
+                }
+                return $"{rm.From}{rm.To}{promo}";
+            }
+            return null;
         }
 
         private async Task<string> ReadBestMoveAsync()
