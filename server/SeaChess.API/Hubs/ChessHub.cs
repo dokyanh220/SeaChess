@@ -457,7 +457,15 @@ namespace SeaChess.API.Hubs
         {
             if (matchState.Status != "Playing") return;
             matchState.Status = "Finished";
-            await _gameState.SaveStateAsync(matchState);
+            
+            if (matchState.IsAiGame)
+            {
+                await _gameState.DeleteStateAsync(matchState.MatchID);
+            }
+            else
+            {
+                await _gameState.SaveStateAsync(matchState);
+            }
 
             if (matchState.IsAiGame)
             {
@@ -586,7 +594,9 @@ namespace SeaChess.API.Hubs
 
             if (matchState.IsAiGame)
             {
-                await EndGame(matchState, "AI", "Resign");
+                await _gameState.DeleteStateAsync(matchId);
+                await _gameState.ClearActiveMatchForUserAsync(userId);
+                Console.WriteLine($"[AI Game Quit] {matchState.MatchID} deleted by {userId}");
                 return;
             }
 

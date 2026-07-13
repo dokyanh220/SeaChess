@@ -132,38 +132,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
 
-            // ========== AI THINKING INDICATOR ==========
-            if (matchState.isAiGame && matchState.isAiThinking)
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: colorScheme.tertiary,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'AI đang suy nghĩ...',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: colorScheme.tertiary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
 
             // ========== ACTION BUTTONS & MY TIMER ==========
             _buildActionButtonsAndTimer(matchState, myTimeMs, isMyTurn, colorScheme),
@@ -296,14 +264,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 onPressed: () => _showResignConfirmDialog(
                   context,
                   matchState.matchId,
+                  matchState.isAiGame,
                   colorScheme,
                 ),
-                icon: Text(
-                  '🏳️',
-                  style: const TextStyle(fontSize: 16),
+                icon: Icon(
+                  matchState.isAiGame ? Icons.exit_to_app : Icons.flag,
+                  color: colorScheme.error,
+                  size: 18,
                 ),
                 label: Text(
-                  'Đầu hàng',
+                  matchState.isAiGame ? 'Thoát trận' : 'Đầu hàng',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -489,6 +459,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void _showResignConfirmDialog(
     BuildContext context,
     String matchId,
+    bool isAiGame,
     ColorScheme colorScheme,
   ) {
     showDialog(
@@ -498,16 +469,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(Icons.flag, color: colorScheme.error, size: 28),
+            Icon(isAiGame ? Icons.exit_to_app : Icons.flag, color: colorScheme.error, size: 28),
             const SizedBox(width: 8),
             Text(
-              'Đầu hàng?',
+              isAiGame ? 'Thoát trận?' : 'Đầu hàng?',
               style: TextStyle(color: colorScheme.onSurface),
             ),
           ],
         ),
         content: Text(
-          'Bạn chắc chắn muốn đầu hàng ván cờ này?',
+          isAiGame ? 'Bạn có muốn thoát trận đấu với AI này không?' : 'Bạn chắc chắn muốn đầu hàng ván cờ này?',
           style: TextStyle(color: colorScheme.onSurfaceVariant),
         ),
         actions: [
@@ -528,10 +499,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             onPressed: () {
               Navigator.pop(context); // Đóng dialog
               ref.read(signalRServiceProvider).resign(matchId);
+              if (isAiGame) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const LobbyScreen()),
+                );
+              }
             },
-            child: const Text(
-              'Đầu hàng',
-              style: TextStyle(color: Colors.white),
+            child: Text(
+              isAiGame ? 'Thoát' : 'Đầu hàng',
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],

@@ -625,7 +625,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                       MaterialPageRoute(builder: (_) => const AiSetupScreen()),
                     );
                   },
-            icon: const Text('🤖', style: TextStyle(fontSize: 22)),
             label: Text(
               'Đấu với Máy',
               style: TextStyle(
@@ -676,7 +675,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('⚔️', style: TextStyle(fontSize: 22)),
                   SizedBox(width: 10),
                   Text(
                     'Tìm Trận',
