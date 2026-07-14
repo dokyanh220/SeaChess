@@ -2,7 +2,8 @@ namespace SeaChess.Application.DTOs.User
 {
     public class UserProfileResponse
     {
-        public Guid UserId { get; set; }
+        public Guid Id { get; set; } // Keep internal Guid if needed, or just change UserId to string
+        public string UserId { get; set; } = string.Empty; // This will map to PlayerId
         public string Username { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string? AvatarUrl { get; set; }

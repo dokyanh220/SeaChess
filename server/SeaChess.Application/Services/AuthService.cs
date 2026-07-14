@@ -30,9 +30,19 @@ namespace SeaChess.Application.Services
 
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(req.Password);
 
+            var random = new Random();
+            string playerId;
+            bool exists;
+            do
+            {
+                playerId = random.Next(10000000, 99999999).ToString();
+                exists = await _context.ExistsByPlayerIdAsync(playerId);
+            } while (exists);
+
             var user = new User
             {
                 Id = Guid.NewGuid(),
+                PlayerId = playerId,
                 Username = req.Username,
                 DisplayName = req.Displayname,
                 Email = req.Email,

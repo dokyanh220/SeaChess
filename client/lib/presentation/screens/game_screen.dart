@@ -38,9 +38,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // Đăng ký trước (sẽ được buffer nếu chưa connect)
     signalR.onNoActiveMatch((_) {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LobbyScreen()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LobbyScreen()));
     });
 
     try {
@@ -94,7 +94,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             _buildTopBar(colorScheme),
 
             // ========== OPPONENT INFO ==========
-            _buildOpponentInfo(matchState, opponentTimeMs, !isMyTurn, colorScheme),
+            _buildOpponentInfo(
+              matchState,
+              opponentTimeMs,
+              !isMyTurn,
+              colorScheme,
+            ),
 
             // ========== CHESS BOARD ==========
             Expanded(
@@ -104,10 +109,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   child: ChessBoardWidget(
                     fen: matchState.fen,
                     myColor: matchState.myColor,
-                    kingInCheckSquare:
-                        matchState.isInCheck ? matchState.kingInCheckSquare : '',
-                    attackerSquares:
-                        matchState.isInCheck ? matchState.attackerSquares : const [],
+                    kingInCheckSquare: matchState.isInCheck
+                        ? matchState.kingInCheckSquare
+                        : '',
+                    attackerSquares: matchState.isInCheck
+                        ? matchState.attackerSquares
+                        : const [],
                     isLocked: matchState.isAiThinking,
                     onMove: (from, to, promotion) {
                       final matchId = ref.read(matchStateProvider).matchId;
@@ -115,7 +122,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
                       // ═══ Set AI thinking state TRƯỚC khi gọi makeMove ═══
                       if (matchState.isAiGame) {
-                        ref.read(matchStateProvider.notifier).setAiThinking(true);
+                        ref
+                            .read(matchStateProvider.notifier)
+                            .setAiThinking(true);
                       }
 
                       if (promotion != null) {
@@ -132,9 +141,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
 
-
             // ========== ACTION BUTTONS & MY TIMER ==========
-            _buildActionButtonsAndTimer(matchState, myTimeMs, isMyTurn, colorScheme),
+            _buildActionButtonsAndTimer(
+              matchState,
+              myTimeMs,
+              isMyTurn,
+              colorScheme,
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -162,7 +175,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   }
 
   /// Info bar cho đối thủ
-  Widget _buildOpponentInfo(MatchState matchState, double timeMs, bool isRunning, ColorScheme colorScheme) {
+  Widget _buildOpponentInfo(
+    MatchState matchState,
+    double timeMs,
+    bool isRunning,
+    ColorScheme colorScheme,
+  ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -199,10 +217,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     ),
                     const SizedBox(width: 8),
                     if (matchState.opponentElo > 0)
-                      _buildSmallChip('Elo ${matchState.opponentElo}', colorScheme.secondaryContainer),
+                      _buildSmallChip(
+                        'Elo ${matchState.opponentElo}',
+                        colorScheme.secondaryContainer,
+                      ),
                     const SizedBox(width: 6),
                     _buildSmallChip(
-                      matchState.opponentRank, 
+                      matchState.opponentRank,
                       Color(RankHelper.getRankColor(matchState.opponentRank)),
                     ),
                   ],
@@ -210,15 +231,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 const SizedBox(height: 6),
                 // Hàng 2: Lv. X
                 if (matchState.opponentLevel > 0)
-                  _buildSmallChip('Lv.${matchState.opponentLevel}', colorScheme.primaryContainer),
+                  _buildSmallChip(
+                    'Lv.${matchState.opponentLevel}',
+                    colorScheme.primaryContainer,
+                  ),
               ],
             ),
           ),
           // Timer
-          ChessTimerWidget(
-            initialTimeMs: timeMs,
-            isRunning: isRunning,
-          ),
+          ChessTimerWidget(initialTimeMs: timeMs, isRunning: isRunning),
         ],
       ),
     );
@@ -244,7 +265,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   }
 
   /// Action buttons: Đầu hàng + Xin hòa + My Timer
-  Widget _buildActionButtonsAndTimer(MatchState matchState, double timeMs, bool isRunning, ColorScheme colorScheme) {
+  Widget _buildActionButtonsAndTimer(
+    MatchState matchState,
+    double timeMs,
+    bool isRunning,
+    ColorScheme colorScheme,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
@@ -304,10 +330,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   icon: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        '🤝',
-                        style: const TextStyle(fontSize: 16),
-                      ),
+                      Text('🤝', style: const TextStyle(fontSize: 16)),
                       const SizedBox(width: 2),
                       Icon(
                         Icons.lock_outline,
@@ -330,10 +353,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           ),
           const SizedBox(width: 10),
           // My Timer
-          ChessTimerWidget(
-            initialTimeMs: timeMs,
-            isRunning: isRunning,
-          ),
+          ChessTimerWidget(initialTimeMs: timeMs, isRunning: isRunning),
         ],
       ),
     );
@@ -352,10 +372,30 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     // Danh sách quân phong cấp: Hậu được đánh dấu isRecommended
     final promotionPieces = [
-      {'key': 'q', 'label': 'Hậu',   'asset': 'assets/pieces/${pieceColor}q.png', 'recommended': true},
-      {'key': 'r', 'label': 'Xe',    'asset': 'assets/pieces/${pieceColor}r.png', 'recommended': false},
-      {'key': 'b', 'label': 'Tượng', 'asset': 'assets/pieces/${pieceColor}b.png', 'recommended': false},
-      {'key': 'n', 'label': 'Mã',    'asset': 'assets/pieces/${pieceColor}n.png', 'recommended': false},
+      {
+        'key': 'q',
+        'label': 'Hậu',
+        'asset': 'assets/pieces/${pieceColor}q.png',
+        'recommended': true,
+      },
+      {
+        'key': 'r',
+        'label': 'Xe',
+        'asset': 'assets/pieces/${pieceColor}r.png',
+        'recommended': false,
+      },
+      {
+        'key': 'b',
+        'label': 'Tượng',
+        'asset': 'assets/pieces/${pieceColor}b.png',
+        'recommended': false,
+      },
+      {
+        'key': 'n',
+        'label': 'Mã',
+        'asset': 'assets/pieces/${pieceColor}n.png',
+        'recommended': false,
+      },
     ];
 
     showDialog(
@@ -419,10 +459,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
               const SizedBox(height: 20),
               // ── Divider ───────────────────────────────
-              Divider(
-                height: 1,
-                color: colorScheme.outline.withOpacity(0.2),
-              ),
+              Divider(height: 1, color: colorScheme.outline.withOpacity(0.2)),
               const SizedBox(height: 20),
 
               // ── 4 Nút chọn quân ──────────────────────
@@ -436,9 +473,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     colorScheme: colorScheme,
                     onTap: () {
                       Navigator.of(ctx).pop();
-                      ref.read(signalRServiceProvider).makeMove(
-                        matchId, from, to, p['key'] as String,
-                      );
+                      ref
+                          .read(signalRServiceProvider)
+                          .makeMove(matchId, from, to, p['key'] as String);
                     },
                   );
                 }).toList(),
@@ -451,8 +488,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       ),
     );
   }
-
-
 
   /// Dialog xác nhận đầu hàng
 
@@ -469,7 +504,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(isAiGame ? Icons.exit_to_app : Icons.flag, color: colorScheme.error, size: 28),
+            Icon(
+              isAiGame ? Icons.exit_to_app : Icons.flag,
+              color: colorScheme.error,
+              size: 28,
+            ),
             const SizedBox(width: 8),
             Text(
               isAiGame ? 'Thoát trận?' : 'Đầu hàng?',
@@ -478,7 +517,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           ],
         ),
         content: Text(
-          isAiGame ? 'Bạn có muốn thoát trận đấu với AI này không?' : 'Bạn chắc chắn muốn đầu hàng ván cờ này?',
+          isAiGame
+              ? 'Bạn có muốn thoát trận đấu với AI này không?'
+              : 'Bạn chắc chắn muốn đầu hàng ván cờ này?',
           style: TextStyle(color: colorScheme.onSurfaceVariant),
         ),
         actions: [
@@ -597,10 +638,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             const SizedBox(height: 4),
             Text(
               'Elo hiện tại: ${state.newElo}',
-              style: TextStyle(
-                fontSize: 14,
-                color: colorScheme.outline,
-              ),
+              style: TextStyle(fontSize: 14, color: colorScheme.outline),
             ),
           ],
         ),
@@ -657,7 +695,7 @@ class _PromotionPieceCardState extends State<_PromotionPieceCard>
   bool _isPressed = false;
 
   // Màu vàng cho quân Hậu (gợi ý)
-  static const Color _goldColor    = Color(0xFFE8A833);
+  static const Color _goldColor = Color(0xFFE8A833);
   static const Color _goldColorDim = Color(0xFFB8860B);
 
   @override
@@ -671,9 +709,10 @@ class _PromotionPieceCardState extends State<_PromotionPieceCard>
       upperBound: 1.0,
       value: 1.0,
     );
-    _scaleAnim = Tween<double>(begin: 0.92, end: 1.0).animate(
-      CurvedAnimation(parent: _scaleCtrl, curve: Curves.easeOut),
-    );
+    _scaleAnim = Tween<double>(
+      begin: 0.92,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _scaleCtrl, curve: Curves.easeOut));
   }
 
   @override
@@ -707,16 +746,16 @@ class _PromotionPieceCardState extends State<_PromotionPieceCard>
     final borderColor = rec
         ? (_isPressed ? _goldColorDim : _goldColor)
         : (_isPressed
-            ? cs.primary.withOpacity(0.5)
-            : cs.outline.withOpacity(0.3));
+              ? cs.primary.withOpacity(0.5)
+              : cs.outline.withOpacity(0.3));
 
     final bgColor = rec
         ? (_isPressed
-            ? _goldColor.withOpacity(0.18)
-            : _goldColor.withOpacity(0.10))
+              ? _goldColor.withOpacity(0.18)
+              : _goldColor.withOpacity(0.10))
         : (_isPressed
-            ? cs.primary.withOpacity(0.12)
-            : cs.primary.withOpacity(0.05));
+              ? cs.primary.withOpacity(0.12)
+              : cs.primary.withOpacity(0.05));
 
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -724,10 +763,8 @@ class _PromotionPieceCardState extends State<_PromotionPieceCard>
       onTapCancel: _onTapCancel,
       child: AnimatedBuilder(
         animation: _scaleAnim,
-        builder: (_, child) => Transform.scale(
-          scale: _scaleAnim.value,
-          child: child,
-        ),
+        builder: (_, child) =>
+            Transform.scale(scale: _scaleAnim.value, child: child),
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.topCenter,
@@ -744,7 +781,9 @@ class _PromotionPieceCardState extends State<_PromotionPieceCard>
                 boxShadow: rec
                     ? [
                         BoxShadow(
-                          color: _goldColor.withOpacity(_isPressed ? 0.35 : 0.22),
+                          color: _goldColor.withOpacity(
+                            _isPressed ? 0.35 : 0.22,
+                          ),
                           blurRadius: _isPressed ? 12 : 18,
                           spreadRadius: 0,
                         ),
@@ -785,7 +824,10 @@ class _PromotionPieceCardState extends State<_PromotionPieceCard>
               Positioned(
                 top: -11,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFE8A833), Color(0xFFFFD700)],
@@ -822,4 +864,3 @@ class _PromotionPieceCardState extends State<_PromotionPieceCard>
     );
   }
 }
-

@@ -6,6 +6,7 @@ namespace SeaChess.Application.Interfaces
     {
         Task SaveStateAsync(MatchState state);
         Task<MatchState?> GetStateAsync(string matchID);
+        Task DeleteStateAsync(string matchID);
 
         /// <summary>Lưu matchId đang active của user (dùng khi bắt đầu trận)</summary>
         Task SetActiveMatchForUserAsync(string userId, string matchId);

@@ -19,6 +19,11 @@ namespace SeaChess.Infrastructure.Repositories
             return await _context.Users.AnyAsync(u => u.Username == username || u.Email == email);
         }
 
+        public async Task<bool> ExistsByPlayerIdAsync(string playerId)
+        {
+            return await _context.Users.AnyAsync(u => u.PlayerId == playerId);
+        }
+
         public async Task<User?> GetByUsernameAsync(string username)
         {
             return await _context.Users.SingleOrDefaultAsync(u => u.Username == username);

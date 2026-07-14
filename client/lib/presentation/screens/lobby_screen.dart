@@ -6,6 +6,7 @@ import 'package:client/presentation/providers/game_providers.dart';
 import 'package:client/presentation/screens/game_screen.dart';
 import 'package:client/presentation/screens/ai_setup_screen.dart';
 import 'package:client/presentation/screens/settings_screen.dart';
+import 'package:client/presentation/screens/friends_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -122,14 +123,27 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   // ========== HEADER ==========
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Text(
-                      'SeaChess',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.onSurface,
-                        letterSpacing: -0.5,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'SeaChess',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onSurface,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.settings_rounded, color: colorScheme.onSurfaceVariant),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const SettingsScreen())
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
 
@@ -139,6 +153,17 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
 
                   // ========== STATS PANEL ==========
                   _buildStatsPanel(profile, colorScheme),
+                  const SizedBox(height: 16),
+
+                  // ========== EXP BAR ==========
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHigh.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: _buildExpBar(profile, colorScheme),
+                  ),
                   const SizedBox(height: 24),
 
                   // ========== MATCHMAKING ==========
@@ -183,10 +208,10 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         currentIndex: 0,
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
-          if (index == 3) {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+          if (index == 1) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const FriendsScreen()),
+            );
           } else if (index != 0) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -200,23 +225,22 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.leaderboard_rounded),
-            label: 'Ranks',
+            icon: Icon(Icons.people_alt_rounded),
+            label: 'Friends',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.storefront_rounded),
             label: 'Shop',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings_rounded),
-            label: 'Settings',
+            icon: Icon(Icons.leaderboard_rounded),
+            label: 'Ranks',
           ),
         ],
       ),
     );
   }
 
-  /// Card Profile: Rank icon + Name + Level/Elo/Rank + EXP bar
   Widget _buildProfileCard(dynamic profile, ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -225,58 +249,109 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
       ),
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Rank icon lớn
-          SizedBox(
-            width: 80,
-            height: 80,
-            child: Image.asset(
-              RankHelper.getRankLargeAssetPath(profile.rank),
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Icon(
-                Icons.shield,
-                size: 60,
-                color: Color(RankHelper.getRankColor(profile.rank)),
-              ),
+          // Bên trái: Tên, ID
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile.displayName,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'ID: ${profile.userId}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-
-          // Display name
-          Text(
-            profile.displayName,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // Row: Level | Elo | Rank
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          // Bên phải: Icon rank + tên rank + progress bar elo
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _buildBadge(
-                'LV',
-                '${profile.level}',
-                colorScheme.primaryContainer,
-                colorScheme,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: Image.asset(
+                      RankHelper.getRankLargeAssetPath(profile.rank),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.shield,
+                        size: 30,
+                        color: Color(RankHelper.getRankColor(profile.rank)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    profile.rank,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(RankHelper.getRankColor(profile.rank)),
+                    ),
+                  ),
+                ],
               ),
-              _buildBadge(
-                'ELO',
-                '${profile.elo}',
-                colorScheme.secondaryContainer,
-                colorScheme,
+              const SizedBox(height: 8),
+              Builder(
+                builder: (context) {
+                  final int currentElo = profile.elo as int;
+                  // Giả lập mốc Elo tiếp theo (target) là bội số của 100 tiếp theo
+                  final int targetElo = ((currentElo ~/ 100) + 1) * 100;
+                  final double progress = (currentElo % 100) / 100.0;
+                  
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Elo: $currentElo / $targetElo',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.tertiary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Progress bar Elo
+                      Container(
+                        width: 100,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: progress.clamp(0.0, 1.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Color(RankHelper.getRankColor(profile.rank)),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }
               ),
-              _buildRankBadge(profile.rank, colorScheme),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // EXP Progress bar
-          _buildExpBar(profile, colorScheme),
         ],
       ),
     );
@@ -437,6 +512,14 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             children: [
               Expanded(
                 child: _buildStatItem(
+                  'Cấp độ',
+                  '${profile.level}',
+                  colorScheme.primary,
+                  colorScheme,
+                ),
+              ),
+              Expanded(
+                child: _buildStatItem(
                   'Trận đấu',
                   '${profile.totalMatches}',
                   colorScheme.onSurface,
@@ -451,6 +534,12 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   colorScheme,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Row 2
+          Row(
+            children: [
               Expanded(
                 child: _buildStatItem(
                   'Thắng',
@@ -459,12 +548,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   colorScheme,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Row 2
-          Row(
-            children: [
               Expanded(
                 child: _buildStatItem(
                   'Thua',
@@ -481,7 +564,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   colorScheme,
                 ),
               ),
-              const Expanded(child: SizedBox()), // Placeholder cho cân đối
             ],
           ),
         ],

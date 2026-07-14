@@ -32,6 +32,12 @@ namespace SeaChess.Infrastructure.Services
             return JsonSerializer.Deserialize<MatchState>(json.ToString());
         }
 
+        public async Task DeleteStateAsync(string matchId)
+        {
+            var key = $"match_state:{matchId}";
+            await _redisDb.KeyDeleteAsync(key);
+        }
+
         // ── Mapping userId → matchId (để reconnect) ──────────────────
 
         public async Task SetActiveMatchForUserAsync(string userId, string matchId)

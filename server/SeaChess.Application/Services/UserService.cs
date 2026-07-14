@@ -26,7 +26,8 @@ namespace SeaChess.Application.Services
 
             return new UserProfileResponse
             {
-                UserId = user.Id,
+                Id = user.Id,
+                UserId = user.PlayerId,
                 Username = user.Username,
                 DisplayName = user.DisplayName,
                 AvatarUrl = user.AvatarUrl,
