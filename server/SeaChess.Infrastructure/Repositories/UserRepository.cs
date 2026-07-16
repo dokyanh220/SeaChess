@@ -45,5 +45,21 @@ namespace SeaChess.Infrastructure.Repositories
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<User>> SearchUsersAsync(string query, Guid currentUserId)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return Enumerable.Empty<User>();
+
+            query = query.ToLower();
+
+            return await _context.Users
+                .Where(u => u.Id != currentUserId && 
+                            (u.Username.ToLower().Contains(query) || 
+                             u.DisplayName.ToLower().Contains(query) || 
+                             u.PlayerId.ToLower() == query))
+                .Take(20) // Limit results
+                .ToListAsync();
+        }
     }
 }

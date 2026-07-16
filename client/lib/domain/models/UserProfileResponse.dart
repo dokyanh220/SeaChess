@@ -1,5 +1,6 @@
 class UserProfile {
   final String userId;
+  final String username;
   final String displayName;
   final int level;
   final int elo;
@@ -13,6 +14,7 @@ class UserProfile {
 
   UserProfile({
     required this.userId,
+    required this.username,
     required this.displayName,
     required this.level,
     required this.elo,
@@ -51,6 +53,7 @@ class UserProfile {
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       userId: json['userId'] ?? json['id'] ?? '',
+      username: json['username'] ?? '',
       displayName: json['displayName'] ?? '',
       level: json['level'] ?? 1,
       elo: json['elo'] ?? 799,

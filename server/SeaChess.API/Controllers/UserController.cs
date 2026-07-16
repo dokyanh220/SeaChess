@@ -28,5 +28,17 @@ namespace SeaChess.API.Controllers
 
             return Ok(userProfle);
         }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchUsers([FromQuery] string q)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null) return Unauthorized();
+
+            var currentUserId = Guid.Parse(userIdClaim);
+            var users = await _service.SearchUsersAsync(q, currentUserId);
+
+            return Ok(users);
+        }
     }
 }

@@ -84,5 +84,29 @@ namespace SeaChess.Application.Services
 
             return level;
         }
+
+        public async Task<IEnumerable<UserProfileResponse>> SearchUsersAsync(string query, Guid currentUserId)
+        {
+            var users = await _context.SearchUsersAsync(query, currentUserId);
+            
+            return users.Select(user => new UserProfileResponse
+            {
+                Id = user.Id,
+                UserId = user.PlayerId,
+                Username = user.Username,
+                DisplayName = user.DisplayName,
+                AvatarUrl = user.AvatarUrl,
+                Experience = user.Experience,
+                Elo = user.Elo,
+                TotalMatches = user.TotalMatches,
+                Wins = user.Wins,
+                Loses = user.Loses,
+                Draw = user.Draw,
+                CreatedAt = user.CreatedAt,
+                WinRate = user.TotalMatches == 0 ? 0 : Math.Round((double)user.Wins / user.TotalMatches * 100, 2),
+                Level = CalculateLevel(user.Experience),
+                Rank = DetermineRank(user.TotalMatches, user.Elo)
+            });
+        }
     }
 }

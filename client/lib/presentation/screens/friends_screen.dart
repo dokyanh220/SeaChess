@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client/presentation/providers/user_providers.dart';
+import 'package:client/presentation/providers/friendship_providers.dart';
+import 'package:client/domain/models/UserProfileResponse.dart';
 
-class FriendsScreen extends StatefulWidget {
+class FriendsScreen extends ConsumerStatefulWidget {
   const FriendsScreen({super.key});
 
   @override
-  State<FriendsScreen> createState() => _FriendsScreenState();
+  ConsumerState<FriendsScreen> createState() => _FriendsScreenState();
 }
 
-class _FriendsScreenState extends State<FriendsScreen> {
+class _FriendsScreenState extends ConsumerState<FriendsScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -60,11 +64,32 @@ class _FriendsScreenState extends State<FriendsScreen> {
   String _searchQuery = '';
   int _searchMode = 0; // 0: Tên, 1: ID
   final TextEditingController _searchController = TextEditingController();
+  
+  bool _isSearching = false;
+  bool _isLoading = false;
+  List<UserProfile> _searchResults = [];
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+  
+  Future<void> _performSearch() async {
+    if (_searchQuery.trim().isEmpty) return;
+    
+    setState(() {
+      _isLoading = true;
+      _isSearching = true;
+    });
+    
+    final repo = ref.read(userRepositoryProvider);
+    final results = await repo.searchUsers(_searchQuery.trim());
+    
+    setState(() {
+      _searchResults = results;
+      _isLoading = false;
+    });
   }
 
   Widget _buildFriendsTab(ColorScheme colorScheme) {
@@ -104,6 +129,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               _searchMode = val;
                               _searchController.clear();
                               _searchQuery = '';
+                              _isSearching = false;
+                              _searchResults.clear();
                             });
                           }
                         },
@@ -117,9 +144,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       ),
                       child: IconButton(
                         icon: Icon(Icons.search, color: colorScheme.onPrimary, size: 20),
-                        onPressed: () {
-                          // TODO: Thực hiện logic tìm kiếm API
-                        },
+                        onPressed: _performSearch,
                       ),
                     ),
                   ],
@@ -133,21 +158,97 @@ class _FriendsScreenState extends State<FriendsScreen> {
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 0),
             ),
+            onSubmitted: (_) => _performSearch(),
           ),
         ),
         
-        // ========== FRIENDS LIST ==========
+        // ========== FRIENDS LIST / SEARCH RESULTS ==========
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: demoFriends.length,
-            itemBuilder: (context, index) {
-              final friend = demoFriends[index];
-              return _buildFriendItem(friend, colorScheme);
-            },
-          ),
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : _isSearching
+                ? ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _searchResults.length,
+                    itemBuilder: (context, index) {
+                      final user = _searchResults[index];
+                      return _buildSearchResultItem(user, colorScheme);
+                    },
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: demoFriends.length,
+                    itemBuilder: (context, index) {
+                      final friend = demoFriends[index];
+                      return _buildFriendItem(friend, colorScheme);
+                    },
+                  ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSearchResultItem(UserProfile user, ColorScheme colorScheme) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: colorScheme.primaryContainer,
+            child: Icon(Icons.person, color: colorScheme.primary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.displayName,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'ID: ${user.userId} • Cấp ${user.level}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () async {
+              final repo = ref.read(friendshipRepositoryProvider);
+              final success = await repo.sendFriendRequest(user.username);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(success ? 'Đã gửi lời mời!' : 'Lỗi khi gửi lời mời')),
+                );
+              }
+            },
+            child: const Text('Kết bạn'),
+          ),
+        ],
+      ),
     );
   }
 
