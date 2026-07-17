@@ -1,5 +1,5 @@
 import 'package:client/presentation/providers/auth_providers.dart';
-import 'package:client/presentation/screens/lobby_screen.dart';
+import 'package:client/presentation/screens/main_screen.dart';
 import 'package:client/presentation/screens/auth/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -116,7 +116,7 @@ class _loginScreenState extends ConsumerState<LoginScreen> {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const LobbyScreen(),
+                                builder: (context) => const MainScreen(),
                               ),
                             );
                           } else if (context.mounted) {

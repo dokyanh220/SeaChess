@@ -1,6 +1,6 @@
 import 'package:client/core/services/local_storage_service.dart';
 import 'package:client/presentation/screens/game_screen.dart';
-import 'package:client/presentation/screens/lobby_screen.dart';
+import 'package:client/presentation/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'presentation/screens/auth/login_screen.dart';
@@ -84,8 +84,8 @@ class AuthGate extends StatelessWidget {
           return const GameScreen(isRejoining: true);
         }
 
-        // Bình thường → vào Lobby
-        return const LobbyScreen();
+        // Bình thường → vào MainScreen
+        return const MainScreen();
       },
     );
   }

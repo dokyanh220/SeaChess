@@ -72,9 +72,6 @@ namespace SeaChess.Application.Services
                 return false;
             }
 
-            // We can set it to Declined or just delete it. Since we only have status updates, let's set it to Declined for now
-            // or maybe delete is better. But our repo only has Update. Let's set status to something else, or maybe we need a Delete method.
-            // I'll update it to Declined.
             friendship.Status = FriendshipStatus.Rejected;
             await _friendshipRepository.UpdateAsync(friendship);
             return true;

@@ -132,16 +132,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
                             color: colorScheme.onSurface,
-                            letterSpacing: -0.5,
                           ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.settings_rounded, color: colorScheme.onSurfaceVariant),
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const SettingsScreen())
-                            );
-                          },
                         ),
                       ],
                     ),
@@ -200,43 +191,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             );
           },
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: colorScheme.surfaceContainerLowest,
-        selectedItemColor: colorScheme.tertiary,
-        unselectedItemColor: colorScheme.onSurfaceVariant.withOpacity(0.4),
-        currentIndex: 0,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (index == 1) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const FriendsScreen()),
-            );
-          } else if (index != 0) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Tính năng đang phát triển'),
-                backgroundColor: colorScheme.surfaceContainerHigh,
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_alt_rounded),
-            label: 'Friends',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.storefront_rounded),
-            label: 'Shop',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.leaderboard_rounded),
-            label: 'Ranks',
-          ),
-        ],
       ),
     );
   }

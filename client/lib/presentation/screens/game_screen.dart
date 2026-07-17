@@ -1,7 +1,7 @@
 import 'package:client/domain/utils/rank_helper.dart';
 import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:client/presentation/providers/game_providers.dart';
-import 'package:client/presentation/screens/lobby_screen.dart';
+import 'package:client/presentation/screens/main_screen.dart';
 import 'package:client/presentation/widgets/chess_board_widget.dart';
 import 'package:client/presentation/widgets/chess_time_widget.dart';
 import 'package:flutter/foundation.dart';
@@ -40,7 +40,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (!mounted) return;
       Navigator.of(
         context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const LobbyScreen()));
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const MainScreen()));
     });
 
     try {
@@ -53,7 +53,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       // Lỗi kết nối → về Lobby
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LobbyScreen()),
+          MaterialPageRoute(builder: (_) => const MainScreen()),
         );
       }
     }
@@ -542,7 +542,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ref.read(signalRServiceProvider).resign(matchId);
               if (isAiGame) {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const LobbyScreen()),
+                  MaterialPageRoute(builder: (_) => const MainScreen()),
                 );
               }
             },

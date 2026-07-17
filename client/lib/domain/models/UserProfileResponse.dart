@@ -1,4 +1,5 @@
 class UserProfile {
+  final String id;
   final String userId;
   final String username;
   final String displayName;
@@ -13,6 +14,7 @@ class UserProfile {
   final double winRate;
 
   UserProfile({
+    required this.id,
     required this.userId,
     required this.username,
     required this.displayName,
@@ -52,7 +54,8 @@ class UserProfile {
   // Factory để parse JSON trả về từ API
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      userId: json['userId'] ?? json['id'] ?? '',
+      id: json['id'] ?? '',
+      userId: json['userId'] ?? '',
       username: json['username'] ?? '',
       displayName: json['displayName'] ?? '',
       level: json['level'] ?? 1,
