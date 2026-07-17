@@ -66,7 +66,7 @@ class FriendshipRepository {
 
   Future<bool> removeFriend(String friendId) async {
     try {
-      final response = await _apiClient.dio.delete('friendship/remove/$friendId');
+      final response = await _apiClient.dio.post('friendship/remove/$friendId');
       return response.statusCode == 200;
     } catch (e) {
       print('Lỗi xóa bạn bè: $e');

@@ -6,11 +6,13 @@ import 'package:signalr_netcore/signalr_client.dart';
 class SignalrService {
   // Nullable thay vì late — tránh LateInitializationError khi connect() chưa được gọi
   HubConnection? _hubConnection;
+  HubConnection? _notificationConnection;
   final LocalStorageService _localStorageService;
 
   // Buffer các event handlers đăng ký TRƯỚC khi connect()
   // Key = tên Hub event, Value = handler function
   final Map<String, Function(List<Object?>?)> _pendingHandlers = {};
+  final Map<String, Function(List<Object?>?)> _pendingNotificationHandlers = {};
 
   SignalrService(this._localStorageService);
 
@@ -30,6 +32,8 @@ class SignalrService {
 
     final hubUrl = '${AppConstants.baseUrl.replaceAll('/api/', '')}/hubs/chess';
 
+    final notificationHubUrl = '${AppConstants.baseUrl.replaceAll('/api/', '')}/hubs/notification';
+
     _hubConnection = HubConnectionBuilder()
         .withUrl(
           hubUrl,
@@ -40,8 +44,19 @@ class SignalrService {
         .withAutomaticReconnect()
         .build();
 
+    _notificationConnection = HubConnectionBuilder()
+        .withUrl(
+          notificationHubUrl,
+          options: HttpConnectionOptions(
+            accessTokenFactory: () async => token ?? '',
+          ),
+        )
+        .withAutomaticReconnect()
+        .build();
+
     await _hubConnection!.start();
-    debugPrint("SignalR connected");
+    await _notificationConnection!.start();
+    debugPrint("SignalR connected (Chess & Notification)");
 
     // Đăng ký tất cả handlers đã buffer trước khi connect()
     _pendingHandlers.forEach((event, handler) {
@@ -49,6 +64,12 @@ class SignalrService {
       debugPrint("[SignalR] Flushed pending handler: $event");
     });
     _pendingHandlers.clear();
+
+    _pendingNotificationHandlers.forEach((event, handler) {
+      _notificationConnection!.on(event, handler);
+      debugPrint("[SignalR] Flushed pending notification handler: $event");
+    });
+    _pendingNotificationHandlers.clear();
   }
 
   /// Đảm bảo kết nối đang sống, nếu chưa thì tự kết nối lại
@@ -69,7 +90,17 @@ class SignalrService {
     }
   }
 
+  void _onNotification(String event, Function(List<Object?>?) handler) {
+    if (_notificationConnection != null) {
+      _notificationConnection!.on(event, handler);
+    } else {
+      _pendingNotificationHandlers[event] = handler;
+    }
+  }
+
   // ── Nhận sự kiện từ Server ────────────────────────────────
+
+  void onReceiveFriendRequest(Function(List<Object?>?) handler) => _onNotification('ReceiveFriendRequest', handler);
 
   void onReceiveMove(Function(List<Object?>?) handler) => _on('ReceiveMove', handler);
 

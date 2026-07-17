@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/presentation/providers/user_providers.dart';
 import 'package:client/presentation/providers/friendship_providers.dart';
+import 'package:client/presentation/providers/notification_providers.dart';
 import 'package:client/domain/models/UserProfileResponse.dart';
 
 class FriendsScreen extends ConsumerStatefulWidget {
@@ -15,6 +16,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final notificationState = ref.watch(notificationStateProvider);
+    final pendingCount = notificationState.pendingRequestsCount;
 
     return DefaultTabController(
       length: 2,
@@ -38,9 +41,16 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
-            tabs: const [
-              Tab(text: 'Danh sách'),
-              Tab(text: 'Lời mời'),
+            tabs: [
+              const Tab(text: 'Danh sách'),
+              Tab(
+                child: Badge(
+                  isLabelVisible: pendingCount > 0,
+                  label: Text(pendingCount.toString()),
+                  backgroundColor: Colors.redAccent,
+                  child: const Text('Lời mời'),
+                ),
+              ),
             ],
           ),
         ),
@@ -86,6 +96,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
         _pendingRequests = requests;
         _isLoadingData = false;
       });
+      // Cập nhật lại số đếm ở provider
+      ref.read(notificationStateProvider.notifier).fetchPendingCount();
     }
   }
 
@@ -309,7 +321,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
           child: Column(
@@ -331,7 +343,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                   style: TextStyle(color: colorScheme.onSurface),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetContext);
                   // TODO: Thêm logic đặt biệt danh
                 },
               ),
@@ -341,9 +353,16 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                   'Xoá bạn bè',
                   style: TextStyle(color: colorScheme.error),
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  // TODO: Thêm logic xoá bạn
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final repo = ref.read(friendshipRepositoryProvider);
+                  final success = await repo.removeFriend(friend.id);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(success ? 'Đã xoá bạn bè' : 'Lỗi khi xoá bạn')),
+                    );
+                    if (success) _fetchData();
+                  }
                 },
               ),
             ],

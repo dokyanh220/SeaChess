@@ -208,7 +208,7 @@ namespace SeaChess.API.Hubs
             // Lấy thông tin đối thủ
             string opponentName  = "Đối thủ";
             int    opponentLevel = 1;
-            int    opponentElo   = 799;
+            int    opponentElo   = 0;
             string opponentRank  = "Unranked";
 
             if (Guid.TryParse(opponentId, out Guid opponentGuid))

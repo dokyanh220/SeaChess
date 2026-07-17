@@ -59,7 +59,7 @@ class UserProfile {
       username: json['username'] ?? '',
       displayName: json['displayName'] ?? '',
       level: json['level'] ?? 1,
-      elo: json['elo'] ?? 799,
+      elo: json['elo'] ?? 0,
       rank: json['rank'] ?? 'Unranked',
       experience: json['experience'] ?? 0,
       totalMatches: json['totalMatches'] ?? 0,

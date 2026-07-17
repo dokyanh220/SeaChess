@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SeaChess.Application.DTOs.User;
 using SeaChess.Application.Interfaces;
+using Microsoft.AspNetCore.SignalR;
+using SeaChess.API.Hubs;
 
 namespace SeaChess.API.Controllers
 {
@@ -12,10 +14,17 @@ namespace SeaChess.API.Controllers
     public class FriendshipController : ControllerBase
     {
         private readonly IFriendshipService _friendshipService;
+        private readonly IUserRepository _userRepository;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public FriendshipController(IFriendshipService friendshipService)
+        public FriendshipController(
+            IFriendshipService friendshipService,
+            IUserRepository userRepository,
+            IHubContext<NotificationHub> hubContext)
         {
             _friendshipService = friendshipService;
+            _userRepository = userRepository;
+            _hubContext = hubContext;
         }
 
         private Guid GetUserId()
@@ -33,6 +42,13 @@ namespace SeaChess.API.Controllers
                 var userId = GetUserId();
                 var success = await _friendshipService.SendFriendRequestAsync(userId, request.ReceiverUsername);
                 if (!success) return BadRequest(new { message = "Cannot send friend request." });
+                
+                var receiver = await _userRepository.GetByUsernameAsync(request.ReceiverUsername);
+                if (receiver != null)
+                {
+                    await _hubContext.Clients.User(receiver.Id.ToString()).SendAsync("ReceiveFriendRequest");
+                }
+
                 return Ok(new { message = "Friend request sent." });
             }
             catch (UnauthorizedAccessException)

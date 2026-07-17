@@ -30,7 +30,7 @@ Lưu thông tin tài khoản, hồ sơ người chơi, điểm xếp hạng và 
 | `Wins` | `integer` | Default `0` | Số trận thắng. |
 | `Loses` | `integer` | Default `0` | Số trận thua. |
 | `Draw` | `integer` | Default `0` | Số trận hòa. |
-| `Elo` | `integer` | Default `799`, indexed | Điểm xếp hạng hiện tại. |
+| `Elo` | `integer` | Default `0`, indexed | Điểm xếp hạng hiện tại. |
 | `EmailVerified` | `boolean` | Default `false` | Trạng thái xác thực email. |
 | `IsActive` | `boolean` | Default `true` | Trạng thái hoạt động của tài khoản. |
 | `CreatedAt` | `timestamp with time zone` | Default `DateTime.UtcNow` | Thời điểm tạo tài khoản. |

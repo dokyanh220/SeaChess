@@ -53,7 +53,8 @@ builder.Services.AddAuthentication(options =>
             var accessToken = context.Request.Query["access_token"];
 
             var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/chess"))
+            if (!string.IsNullOrEmpty(accessToken) && 
+                (path.StartsWithSegments("/hubs/chess") || path.StartsWithSegments("/hubs/notification")))
             {
                 context.Token = accessToken;
             }
@@ -107,5 +108,6 @@ app.UseAuthorization();
 
 // Chuẩn bị Endpoint cho SignalR Hub
 app.MapHub<ChessHub>("/hubs/chess");
+app.MapHub<NotificationHub>("/hubs/notification");
 app.MapControllers();
 app.Run();

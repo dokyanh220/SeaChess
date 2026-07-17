@@ -87,7 +87,7 @@ namespace SeaChess.API.Workers
                                 .SendAsync("MatchStarted", matchId, initialFen, "white", new {
                                     opponentName = p2Profile?.DisplayName ?? "Đối thủ",
                                     opponentLevel = p2Profile?.Level ?? 1,
-                                    opponentElo = p2Profile?.Elo ?? 799,
+                                    opponentElo = p2Profile?.Elo ?? 0,
                                     opponentRank = p2Profile?.Rank ?? "Unranked"
                                 }, cancellationToken: stoppingToken);
 
@@ -96,7 +96,7 @@ namespace SeaChess.API.Workers
                                 .SendAsync("MatchStarted", matchId, initialFen, "black", new {
                                     opponentName = p1Profile?.DisplayName ?? "Đối thủ",
                                     opponentLevel = p1Profile?.Level ?? 1,
-                                    opponentElo = p1Profile?.Elo ?? 799,
+                                    opponentElo = p1Profile?.Elo ?? 0,
                                     opponentRank = p1Profile?.Rank ?? "Unranked"
                                 }, cancellationToken: stoppingToken);
                         }

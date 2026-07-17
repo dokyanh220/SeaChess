@@ -5,8 +5,6 @@ import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:client/presentation/providers/game_providers.dart';
 import 'package:client/presentation/screens/game_screen.dart';
 import 'package:client/presentation/screens/ai_setup_screen.dart';
-import 'package:client/presentation/screens/settings_screen.dart';
-import 'package:client/presentation/screens/friends_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -132,6 +130,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
                             color: colorScheme.onSurface,
+                            letterSpacing: -0.5,
                           ),
                         ),
                       ],

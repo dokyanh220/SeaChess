@@ -48,7 +48,7 @@ namespace SeaChess.Application.Services
                 Email = req.Email,
                 PasswordHash = passwordHash,
                 Experience = 0,
-                Elo = 799,
+                Elo = 0,
                 TotalMatches = 0,
                 Wins = 0,
                 Loses = 0,

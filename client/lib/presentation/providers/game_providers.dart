@@ -192,7 +192,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         blackTimeMs:   ((data['BlackTimeLeftMs'] ?? data['blackTimeLeftMs']) as num?)?.toDouble() ?? 1200000,
         opponentName:  data['OpponentName']  ?? data['opponentName']  ?? 'Đối thủ',
         opponentLevel: (data['OpponentLevel'] ?? data['opponentLevel'] ?? 1).toInt(),
-        opponentElo:   (data['OpponentElo']   ?? data['opponentElo']  ?? 799).toInt(),
+        opponentElo:   (data['OpponentElo']   ?? data['opponentElo']  ?? 0).toInt(),
         opponentRank:  data['OpponentRank']   ?? data['opponentRank'] ?? 'Unranked',
       );
     });
@@ -230,13 +230,13 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
   void initMatch(String id, String fen, String color, [Map<String, dynamic>? opponentInfo]) {
     String oppName  = 'Đối thủ';
     int oppLevel    = 1;
-    int oppElo      = 799;
+    int oppElo      = 0;
     String oppRank  = 'Unranked';
 
     if (opponentInfo != null) {
       oppName  = opponentInfo['opponentName']  ?? opponentInfo['OpponentName']  ?? 'Đối thủ';
       oppLevel = (opponentInfo['opponentLevel'] ?? opponentInfo['OpponentLevel'] ?? 1).toInt();
-      oppElo   = (opponentInfo['opponentElo']  ?? opponentInfo['OpponentElo']  ?? 799).toInt();
+      oppElo   = (opponentInfo['opponentElo']  ?? opponentInfo['OpponentElo']  ?? 0).toInt();
       oppRank  = opponentInfo['opponentRank']  ?? opponentInfo['OpponentRank']  ?? 'Unranked';
     }
 

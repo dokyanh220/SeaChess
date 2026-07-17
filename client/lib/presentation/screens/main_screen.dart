@@ -3,14 +3,17 @@ import 'package:client/presentation/screens/lobby_screen.dart';
 import 'package:client/presentation/screens/friends_screen.dart';
 import 'package:client/presentation/screens/settings_screen.dart';
 
-class MainScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client/presentation/providers/notification_providers.dart';
+
+class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
   final PageController _pageController = PageController();
 
@@ -34,6 +37,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final notificationState = ref.watch(notificationStateProvider);
+    final pendingCount = notificationState.pendingRequestsCount;
 
     return Scaffold(
       body: PageView(
@@ -57,10 +62,18 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
         onTap: _onTabTapped,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.people_alt_rounded), label: 'Friends'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_rounded), label: 'Settings'),
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Badge(
+              isLabelVisible: pendingCount > 0,
+              label: Text(pendingCount.toString()),
+              backgroundColor: Colors.redAccent,
+              child: const Icon(Icons.people_alt_rounded),
+            ),
+            label: 'Friends',
+          ),
+          const BottomNavigationBarItem(icon: Icon(Icons.settings_rounded), label: 'Settings'),
         ],
       ),
     );
