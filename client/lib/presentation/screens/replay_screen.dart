@@ -3,17 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:chess/chess.dart' as chess_lib;
 import 'package:client/presentation/widgets/chess_board_widget.dart';
 import 'package:client/domain/models/match_history_model.dart';
+import 'package:client/presentation/widgets/captured_pieces_widget.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client/core/services/audio_service.dart';
 
-class ReplayScreen extends StatefulWidget {
+class ReplayScreen extends ConsumerStatefulWidget {
   final MatchHistoryModel match;
 
   const ReplayScreen({super.key, required this.match});
 
   @override
-  State<ReplayScreen> createState() => _ReplayScreenState();
+  ConsumerState<ReplayScreen> createState() => _ReplayScreenState();
 }
 
-class _ReplayScreenState extends State<ReplayScreen> {
+class _ReplayScreenState extends ConsumerState<ReplayScreen> {
   late chess_lib.Chess _chess;
   List<String> _fens = [];
   int _currentIndex = 0;
@@ -22,39 +25,126 @@ class _ReplayScreenState extends State<ReplayScreen> {
   bool _isPlaying = false;
   int _speedMultiplier = 1; // 1, 2, 6
   
+  List<String> _moveStrings = [];
+  final ScrollController _scrollController = ScrollController();
+
+  void _updateCurrentIndex(int newIndex) {
+    if (newIndex < 0 || newIndex >= _fens.length) return;
+    if (newIndex != _currentIndex) {
+      final fen = _fens[newIndex];
+      final chess = chess_lib.Chess.fromFEN(fen);
+      final audioService = ref.read(audioServiceProvider);
+      
+      if (chess.in_checkmate) {
+        audioService.playGameOverSound();
+      } else if (chess.in_check) {
+        audioService.playCheckSound();
+      } else {
+        audioService.playMoveSound();
+      }
+    }
+
+    setState(() {
+      _currentIndex = newIndex;
+    });
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        double itemWidth = 85.0; // Ước lượng chiều rộng của mỗi ô (chữ + padding + margin)
+        // Tính toán offset để ô hiện tại luôn cách cạnh phải màn hình khoảng 2 ô
+        double offset = 16.0 + (newIndex - 1) * itemWidth - MediaQuery.of(context).size.width + (3 * itemWidth);
+        
+        if (offset < 0) offset = 0;
+        if (offset > _scrollController.position.maxScrollExtent) {
+          offset = _scrollController.position.maxScrollExtent;
+        }
+        _scrollController.animateTo(
+          offset,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _initReplay();
   }
-  
+
   void _initReplay() {
     _chess = chess_lib.Chess();
     
-    // Lưu lại FEN ban đầu
-    _fens.add(_chess.fen);
-    
     if (widget.match.pgn != null && widget.match.pgn!.isNotEmpty) {
-      // Dùng chess package để load PGN (có thể load_pgn trả về boolean)
-      bool success = _chess.load_pgn(widget.match.pgn!);
-      if (success) {
-        // Sau khi load PGN, _chess đang ở trạng thái cuối cùng
-        // Lấy lại danh sách history (các nước đi)
-        final history = _chess.history;
+      if (widget.match.pgn!.contains(';')) {
+        _fens = widget.match.pgn!.split(';');
+      } else {
+        bool success = _chess.load_pgn(widget.match.pgn!);
+        if (success) {
+          List<String> tempFens = [_chess.fen];
+          while (_chess.undo() != null) {
+            tempFens.add(_chess.fen);
+          }
+          _fens = tempFens.reversed.toList();
+        } else {
+          _fens = [widget.match.pgn!];
+        }
+      }
+    } else {
+      _fens = [_chess.fen];
+    }
+
+    _moveStrings = [];
+    for (int i = 1; i < _fens.length; i++) {
+      _moveStrings.add(_getMoveString(_fens[i - 1], _fens[i]));
+    }
+  }
+
+  String _getMoveString(String fen1, String fen2) {
+    List<String> board1 = _parseBoard(fen1);
+    List<String> board2 = _parseBoard(fen2);
+    String from = '';
+    String to = '';
+    for (int i = 0; i < 64; i++) {
+      if (board1[i] != board2[i]) {
+        int row = i ~/ 8;
+        int col = i % 8;
+        String square = '${String.fromCharCode(97 + col)}${8 - row}';
         
-        // Tạo lại từ đầu để lưu FEN từng bước
-        var replayChess = chess_lib.Chess();
-        for (var move in history) {
-          replayChess.move(move);
-          _fens.add(replayChess.fen);
+        if (board1[i] != '' && board2[i] == '') {
+          from = square;
+        } else if (board2[i] != '') {
+          to = square;
         }
       }
     }
+    if (from.isNotEmpty && to.isNotEmpty) return '$from-$to';
+    return '';
   }
+
+  List<String> _parseBoard(String fen) {
+    if (fen.isEmpty) return List.filled(64, '');
+    final boardPart = fen.split(' ')[0];
+    final List<String> board = [];
+    for (int i = 0; i < boardPart.length; i++) {
+      final char = boardPart[i];
+      if (char == '/') continue;
+      final emptySquares = int.tryParse(char);
+      if (emptySquares != null) {
+        for (int j = 0; j < emptySquares; j++) board.add('');
+      } else {
+        board.add(char);
+      }
+    }
+    return board;
+  }
+
 
   @override
   void dispose() {
     _playbackTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -62,6 +152,9 @@ class _ReplayScreenState extends State<ReplayScreen> {
     setState(() {
       _isPlaying = !_isPlaying;
       if (_isPlaying) {
+        if (_currentIndex >= _fens.length - 1) {
+          _updateCurrentIndex(0);
+        }
         _startPlayback();
       } else {
         _playbackTimer?.cancel();
@@ -77,9 +170,7 @@ class _ReplayScreenState extends State<ReplayScreen> {
     
     _playbackTimer = Timer.periodic(Duration(milliseconds: interval), (timer) {
       if (_currentIndex < _fens.length - 1) {
-        setState(() {
-          _currentIndex++;
-        });
+        _updateCurrentIndex(_currentIndex + 1);
       } else {
         setState(() {
           _isPlaying = false;
@@ -100,17 +191,13 @@ class _ReplayScreenState extends State<ReplayScreen> {
 
   void _nextStep() {
     if (_currentIndex < _fens.length - 1) {
-      setState(() {
-        _currentIndex++;
-      });
+      _updateCurrentIndex(_currentIndex + 1);
     }
   }
 
   void _prevStep() {
     if (_currentIndex > 0) {
-      setState(() {
-        _currentIndex--;
-      });
+      _updateCurrentIndex(_currentIndex - 1);
     }
   }
 
@@ -140,32 +227,44 @@ class _ReplayScreenState extends State<ReplayScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Đối thủ: ${widget.match.opponentName}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: colorScheme.onSurface,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Đối thủ: ${widget.match.opponentName}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: colorScheme.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.match.result == 1 
-                              ? 'Trắng thắng' 
-                              : widget.match.result == 2 
-                                  ? 'Đen thắng' 
-                                  : widget.match.result == 3 
-                                      ? 'Hòa' 
-                                      : 'Đang chờ',
-                          style: TextStyle(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.match.result == 1 
+                                ? 'Trắng thắng' 
+                                : widget.match.result == 2 
+                                    ? 'Đen thắng' 
+                                    : widget.match.result == 3 
+                                        ? 'Hòa' 
+                                        : 'Đang chờ',
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              CapturedPiecesWidget(currentFen: currentFen, isWhite: widget.match.isWhite),
+                              CapturedPiecesWidget(currentFen: currentFen, isWhite: !widget.match.isWhite),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                     Text(
                       'Nước: $_currentIndex / ${_fens.length - 1}',
@@ -198,6 +297,43 @@ class _ReplayScreenState extends State<ReplayScreen> {
               ),
             ),
             
+            // Move history
+            if (_moveStrings.isNotEmpty)
+              Container(
+                height: 50,
+                margin: const EdgeInsets.only(bottom: 16),
+                child: ListView.builder(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _moveStrings.length,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemBuilder: (context, index) {
+                    bool isCurrent = index + 1 == _currentIndex;
+                    return GestureDetector(
+                      onTap: () {
+                        _updateCurrentIndex(index + 1);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: isCurrent ? colorScheme.primary : colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${index + 1}. ${_moveStrings[index]}',
+                          style: TextStyle(
+                            color: isCurrent ? colorScheme.onPrimary : colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              
             // Controls
             Container(
               padding: const EdgeInsets.all(16),
@@ -207,8 +343,10 @@ class _ReplayScreenState extends State<ReplayScreen> {
               ),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       // Tốc độ
                       _SpeedButton(
@@ -217,14 +355,12 @@ class _ReplayScreenState extends State<ReplayScreen> {
                         onTap: () => _setSpeed(1),
                         colorScheme: colorScheme,
                       ),
-                      const SizedBox(width: 8),
                       _SpeedButton(
                         label: 'x2',
                         isActive: _speedMultiplier == 2,
                         onTap: () => _setSpeed(2),
                         colorScheme: colorScheme,
                       ),
-                      const SizedBox(width: 8),
                       _SpeedButton(
                         label: 'x6',
                         isActive: _speedMultiplier == 6,
@@ -234,30 +370,35 @@ class _ReplayScreenState extends State<ReplayScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      IconButton(
-                        onPressed: _prevStep,
-                        icon: const Icon(Icons.skip_previous),
-                        iconSize: 36,
-                        color: colorScheme.primary,
-                      ),
-                      FloatingActionButton(
-                        onPressed: _togglePlayPause,
-                        backgroundColor: colorScheme.primary,
-                        child: Icon(
-                          _isPlaying ? Icons.pause : Icons.play_arrow,
-                          size: 32,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        IconButton(
+                          onPressed: _prevStep,
+                          icon: const Icon(Icons.skip_previous),
+                          iconSize: 36,
+                          color: colorScheme.primary,
                         ),
-                      ),
-                      IconButton(
-                        onPressed: _nextStep,
-                        icon: const Icon(Icons.skip_next),
-                        iconSize: 36,
-                        color: colorScheme.primary,
-                      ),
-                    ],
+                        const SizedBox(width: 16),
+                        FloatingActionButton(
+                          onPressed: _togglePlayPause,
+                          backgroundColor: colorScheme.primary,
+                          child: Icon(
+                            _isPlaying ? Icons.pause : Icons.play_arrow,
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        IconButton(
+                          onPressed: _nextStep,
+                          icon: const Icon(Icons.skip_next),
+                          iconSize: 36,
+                          color: colorScheme.primary,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

@@ -183,7 +183,17 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
                 : const Color(0xFFF0D9B5);
 
             Widget pieceWidget = piece.isNotEmpty
-                ? Image.asset(_getPieceAssetPath(piece))
+                ? SizedBox( // Size quân cờ
+                  width: 120,
+                  height: 120,
+                  child: Transform.scale(
+                    scale: 1.05,
+                    child: Image.asset(
+                      _getPieceAssetPath(piece),
+                      fit: BoxFit.contain,
+                    ),
+                  )
+                )
                 : const SizedBox.shrink();
 
             if (piece.isNotEmpty && canDrag) {
@@ -192,8 +202,8 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
                 feedback: Material(
                   color: Colors.transparent,
                   child: SizedBox(
-                    width: 80, // Cho dragging feedback to hơn
-                    height: 80,
+                    width: 120, // Cho dragging feedback to hơn
+                    height: 120,
                     child: Image.asset(_getPieceAssetPath(piece)),
                   ),
                 ),

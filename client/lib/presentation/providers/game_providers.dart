@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/legacy.dart';
 class MatchState {
   final String matchId;
   final String fen;
+  final List<String> fenHistory;
   final String myColor;
   final double whiteTimeMs;
   final double blackTimeMs;
@@ -36,6 +37,7 @@ class MatchState {
   MatchState({
     this.matchId = '',
     this.fen = '',
+    this.fenHistory = const [],
     this.myColor = '',
     this.whiteTimeMs = 1200000,
     this.blackTimeMs = 1200000,
@@ -63,6 +65,7 @@ class MatchState {
   MatchState coppyWith({
     String? matchId,
     String? fen,
+    List<String>? fenHistory,
     String? myColor,
     double? whiteTimeMs,
     double? blackTimeMs,
@@ -89,6 +92,7 @@ class MatchState {
     return MatchState(
       matchId: matchId ?? this.matchId,
       fen: fen ?? this.fen,
+      fenHistory: fenHistory ?? this.fenHistory,
       myColor: myColor ?? this.myColor,
       whiteTimeMs: whiteTimeMs ?? this.whiteTimeMs,
       blackTimeMs: blackTimeMs ?? this.blackTimeMs,
@@ -141,6 +145,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       if (newFen.isNotEmpty) {
         state = state.coppyWith(
           fen: newFen,
+          fenHistory: [...state.fenHistory, newFen],
           whiteTimeMs: whiteTime,
           blackTimeMs: blackTime,
           isInCheck: isCheck,
@@ -187,6 +192,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       state = MatchState(
         matchId:       matchId,
         fen:           fen,
+        fenHistory:    [fen], // Khi reconnect chỉ lấy được trạng thái hiện tại
         myColor:       color,
         whiteTimeMs:   ((data['WhiteTimeLeftMs'] ?? data['whiteTimeLeftMs']) as num?)?.toDouble() ?? 1200000,
         blackTimeMs:   ((data['BlackTimeLeftMs'] ?? data['blackTimeLeftMs']) as num?)?.toDouble() ?? 1200000,
@@ -210,6 +216,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       state = MatchState(
         matchId:       matchId,
         fen:           fen,
+        fenHistory:    [fen],
         myColor:       myColor,
         whiteTimeMs:   ((data['WhiteTimeLeftMs'] ?? data['whiteTimeLeftMs']) as num?)?.toDouble() ?? 600000,
         blackTimeMs:   ((data['BlackTimeLeftMs'] ?? data['blackTimeLeftMs']) as num?)?.toDouble() ?? 600000,
@@ -243,6 +250,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     state = MatchState(
       matchId:       id,
       fen:           fen,
+      fenHistory:    [fen],
       myColor:       color,
       opponentName:  oppName,
       opponentLevel: oppLevel,
@@ -255,7 +263,10 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
   }
 
   void updateFen(String newFen) {
-    state = state.coppyWith(fen: newFen);
+    state = state.coppyWith(
+      fen: newFen,
+      fenHistory: [...state.fenHistory, newFen]
+    );
   }
 
   void setAiThinking(bool thinking) {

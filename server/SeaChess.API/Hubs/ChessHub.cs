@@ -121,6 +121,7 @@ namespace SeaChess.API.Hubs
             {
                 MatchID = matchId,
                 CurrentFen = INITIAL_FEN,
+                FenHistory = new List<string> { INITIAL_FEN },
                 WhitePlayerId = playerColor == PieceColor.White ? userId : "AI",
                 BlackPlayerId = playerColor == PieceColor.Black ? userId : "AI",
                 WhiteTimeLeftMs = timeMs,
@@ -328,6 +329,7 @@ namespace SeaChess.API.Hubs
             var checkInfo = GameStateAnalyzer.GetCheckInfo(board, nextTurnColor);
 
             matchState.CurrentFen = newFen; // Cập nhật redis
+            matchState.FenHistory.Add(newFen);
 
             await _gameState.SaveStateAsync(matchState);
 
@@ -410,6 +412,7 @@ namespace SeaChess.API.Hubs
                 }
 
                 matchState.CurrentFen = aiFen;
+                matchState.FenHistory.Add(aiFen);
                 matchState.LastMoveTime = DateTimeOffset.UtcNow;
 
                 await _gameState.SaveStateAsync(matchState);
@@ -579,7 +582,7 @@ namespace SeaChess.API.Hubs
                 Result = dbMatchResult,
                 InitialTimeSeconds = 600, // TODO: lưu thời gian thực tế nếu có
                 IsAiGame = false,
-                PGN = matchState.CurrentFen, // Tạm lưu FEN cuối
+                PGN = string.Join(";", matchState.FenHistory), // Lưu toàn bộ FEN history
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow
             };

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:client/core/theme/app_theme.dart';
+import 'package:client/domain/utils/rank_helper.dart';
 
 class PlayerProfileCard extends StatelessWidget {
   final String username;
@@ -69,7 +70,7 @@ class PlayerProfileCard extends StatelessWidget {
                         child: Row(
                           children: [
                             Image.asset(
-                              'assets/rank/${rank.replaceAll(' ', '')}.png',
+                              RankHelper.getRankAssetPath(rank),
                               width: 16,
                               height: 16,
                               errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),

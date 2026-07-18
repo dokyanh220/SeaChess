@@ -28,7 +28,10 @@ class AudioService {
 
   Future<void> playMoveSound() async {
     try {
-      await _movePlayer.resume();
+      if (_movePlayer.state == PlayerState.playing) {
+        await _movePlayer.stop();
+      }
+      await _movePlayer.play(AssetSource('audio/move.mp3'));
     } catch (e) {
       print("Error playing move sound: $e");
     }
@@ -36,7 +39,10 @@ class AudioService {
 
   Future<void> playCheckSound() async {
     try {
-      await _checkPlayer.resume();
+      if (_checkPlayer.state == PlayerState.playing) {
+        await _checkPlayer.stop();
+      }
+      await _checkPlayer.play(AssetSource('audio/check.mp3'));
     } catch (e) {
       print("Error playing check sound: $e");
     }
@@ -44,7 +50,10 @@ class AudioService {
 
   Future<void> playGameOverSound() async {
     try {
-      await _gameOverPlayer.resume();
+      if (_gameOverPlayer.state == PlayerState.playing) {
+        await _gameOverPlayer.stop();
+      }
+      await _gameOverPlayer.play(AssetSource('audio/game_over.mp3'));
     } catch (e) {
       print("Error playing game over sound: $e");
     }

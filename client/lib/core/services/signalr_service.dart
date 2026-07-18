@@ -56,18 +56,18 @@ class SignalrService {
 
     await _hubConnection!.start();
     await _notificationConnection!.start();
-    debugPrint("SignalR connected (Chess & Notification)");
+    // debugPrint("SignalR connected (Chess & Notification)");
 
     // Đăng ký tất cả handlers đã buffer trước khi connect()
     _pendingHandlers.forEach((event, handler) {
       _hubConnection!.on(event, handler);
-      debugPrint("[SignalR] Flushed pending handler: $event");
+      // debugPrint("[SignalR] Flushed pending handler: $event");
     });
     _pendingHandlers.clear();
 
     _pendingNotificationHandlers.forEach((event, handler) {
       _notificationConnection!.on(event, handler);
-      debugPrint("[SignalR] Flushed pending notification handler: $event");
+      // debugPrint("[SignalR] Flushed pending notification handler: $event");
     });
     _pendingNotificationHandlers.clear();
   }

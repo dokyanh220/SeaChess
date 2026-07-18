@@ -28,6 +28,8 @@ namespace SeaChess.Application.Services
             var opponentIds = matches
                 .Where(m => !m.IsAiGame)
                 .Select(m => m.WhitePlayerId == userId ? m.BlackPlayerId : m.WhitePlayerId)
+                .Where(id => id.HasValue)
+                .Select(id => id.Value)
                 .Distinct()
                 .ToList();
                 
@@ -58,7 +60,7 @@ namespace SeaChess.Application.Services
                 else
                 {
                     var opId = isWhite ? match.BlackPlayerId : match.WhitePlayerId;
-                    if (opponents.TryGetValue(opId, out var opponent))
+                    if (opId.HasValue && opponents.TryGetValue(opId.Value, out var opponent))
                     {
                         opponentName = opponent.Username;
                         opponentElo = opponent.Elo;
@@ -150,8 +152,8 @@ namespace SeaChess.Application.Services
             var match = new Match
             {
                 Id = Guid.NewGuid(),
-                WhitePlayerId = dto.PlayerColor == PieceColor.White ? userId : Guid.Empty,
-                BlackPlayerId = dto.PlayerColor == PieceColor.Black ? userId : Guid.Empty,
+                WhitePlayerId = dto.PlayerColor == PieceColor.White ? userId : null,
+                BlackPlayerId = dto.PlayerColor == PieceColor.Black ? userId : null,
                 Result = dto.Result,
                 InitialTimeSeconds = dto.InitialTimeSeconds,
                 IsAiGame = true,

@@ -8,6 +8,7 @@ namespace SeaChess.Application.DTOs.Match
         public string WhitePlayerId { get; set; } = string.Empty;
         public string BlackPlayerId { get; set; } = string.Empty;
         public string CurrentFen { get; set; } = string.Empty;
+        public List<string> FenHistory { get; set; } = new List<string>();
         public string Status { get; set; } = "Playing";
 
         // Quản lý thời gian

@@ -59,6 +59,7 @@ namespace SeaChess.API.Workers
                                 WhitePlayerId = p1.ToString()!,
                                 BlackPlayerId = p2.ToString()!,
                                 CurrentFen = initialFen,
+                                FenHistory = new List<string> { initialFen },
                                 Status = "Playing",
                                 WhiteTimeLeftMs = initialTimeMs,
                                 BlackTimeLeftMs = initialTimeMs,
