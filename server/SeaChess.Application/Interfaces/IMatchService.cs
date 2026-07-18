@@ -8,5 +8,6 @@ namespace SeaChess.Application.Interfaces
     public interface IMatchService
     {
         Task<List<MatchHistoryDto>> GetMatchHistoryAsync(Guid userId, int limit);
+        Task<AiMatchResultResponse> SaveAiMatchResultAsync(Guid userId, AiMatchResultDto dto);
     }
 }

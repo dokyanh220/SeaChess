@@ -18,14 +18,16 @@ namespace SeaChess.API.Hubs
         private readonly IGameStateService _gameState;
         private readonly IUserRepository _userRepo;
         private readonly IStockfishService _stockfish;
+        private readonly IMatchRepository _matchRepo;
         private const string INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-        public ChessHub(IMatchMakingService matchmaking, IGameStateService gameState, IUserRepository repository, IStockfishService stockfish)
+        public ChessHub(IMatchMakingService matchmaking, IGameStateService gameState, IUserRepository repository, IStockfishService stockfish, IMatchRepository matchRepo)
         {
             _matchmaking = matchmaking;
             _gameState = gameState;
             _userRepo = repository;
             _stockfish = stockfish;
+            _matchRepo = matchRepo;
         }
 
         public override async Task OnConnectedAsync()
@@ -562,6 +564,27 @@ namespace SeaChess.API.Hubs
             // Xóa mapping userId → matchId (đã kết thúc, không cần reconnect nữa)
             await _gameState.ClearActiveMatchForUserAsync(matchState.WhitePlayerId);
             await _gameState.ClearActiveMatchForUserAsync(matchState.BlackPlayerId);
+
+            var dbMatchResult = winnerId == null ? MatchResult.Draw 
+                : winnerId == matchState.WhitePlayerId ? MatchResult.WhiteWin 
+                : MatchResult.BlackWin;
+                
+            if (reason == "Aborted") dbMatchResult = MatchResult.Aborted;
+
+            var match = new Match
+            {
+                Id = Guid.NewGuid(),
+                WhitePlayerId = Guid.Parse(matchState.WhitePlayerId),
+                BlackPlayerId = Guid.Parse(matchState.BlackPlayerId),
+                Result = dbMatchResult,
+                InitialTimeSeconds = 600, // TODO: lưu thời gian thực tế nếu có
+                IsAiGame = false,
+                PGN = matchState.CurrentFen, // Tạm lưu FEN cuối
+                StartTime = DateTime.UtcNow,
+                EndTime = DateTime.UtcNow
+            };
+            
+            await _matchRepo.AddAsync(match);
 
             await Clients.User(matchState.WhitePlayerId).SendAsync("GameOver", new
             {

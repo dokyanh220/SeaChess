@@ -36,6 +36,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   @override
   void dispose() {
     _searchTimer?.cancel();
+    try {
+      ref.read(signalRServiceProvider).offMatchStarted();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -44,7 +47,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
 
     try {
       final signalR = ref.read(signalRServiceProvider);
-
+      signalR.offMatchStarted(); // prevent multiple handlers
       await signalR.connect();
 
       signalR.onMatchStarted((args) {
@@ -55,8 +58,10 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         final color = args[2].toString();
 
         Map<String, dynamic> opponentInfo = {};
-        if (args.length > 3 && args[3] is Map) {
-          opponentInfo = args[3] as Map<String, dynamic>;
+        if (args.length > 3 && args[3] != null) {
+          if (args[3] is Map) {
+            opponentInfo = Map<String, dynamic>.from(args[3] as Map);
+          }
         }
 
         ref

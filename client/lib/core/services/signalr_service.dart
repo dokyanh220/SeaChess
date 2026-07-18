@@ -105,6 +105,7 @@ class SignalrService {
   void onReceiveMove(Function(List<Object?>?) handler) => _on('ReceiveMove', handler);
 
   void onMatchStarted(Function(List<Object?>?) handler) => _on('MatchStarted', handler);
+  void offMatchStarted() => _hubConnection?.off('MatchStarted');
 
   void onGameOver(Function(List<Object?>?) handler) => _on('GameOver', handler);
 

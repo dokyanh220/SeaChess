@@ -26,5 +26,11 @@ namespace SeaChess.Infrastructure.Repositories
                 .Take(limit)
                 .ToListAsync();
         }
+
+        public async Task AddAsync(Match match)
+        {
+            await _context.Matches.AddAsync(match);
+            await _context.SaveChangesAsync();
+        }
     }
 }

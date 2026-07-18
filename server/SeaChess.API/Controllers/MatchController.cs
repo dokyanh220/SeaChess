@@ -35,5 +35,25 @@ namespace SeaChess.API.Controllers
             var history = await _matchService.GetMatchHistoryAsync(userId, limit);
             return Ok(history);
         }
+
+        [HttpPost("ai-result")]
+        public async Task<IActionResult> SaveAiMatch([FromBody] SeaChess.Application.DTOs.Match.AiMatchResultDto dto)
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid token" });
+            }
+
+            try
+            {
+                var response = await _matchService.SaveAiMatchResultAsync(userId, dto);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

@@ -86,5 +86,92 @@ namespace SeaChess.Application.Services
             
             return result;
         }
+
+        public async Task<AiMatchResultResponse> SaveAiMatchResultAsync(Guid userId, AiMatchResultDto dto)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null) throw new Exception("User not found");
+
+            int eloChange = 0;
+            int xpChange = 0;
+
+            bool isWin = (dto.PlayerColor == PieceColor.White && dto.Result == MatchResult.WhiteWin) || 
+                         (dto.PlayerColor == PieceColor.Black && dto.Result == MatchResult.BlackWin);
+            bool isLoss = (dto.PlayerColor == PieceColor.White && dto.Result == MatchResult.BlackWin) || 
+                          (dto.PlayerColor == PieceColor.Black && dto.Result == MatchResult.WhiteWin);
+            bool isDraw = dto.Result == MatchResult.Draw || dto.Result == MatchResult.Aborted;
+
+            switch (dto.Difficulty)
+            {
+                case AiDifficulty.Beginner:
+                    eloChange = isWin ? 5 : isLoss ? -5 : 0;
+                    xpChange = isWin ? 10 : isLoss ? 2 : 5;
+                    break;
+                case AiDifficulty.Easy:
+                    eloChange = isWin ? 10 : isLoss ? -10 : 0;
+                    xpChange = isWin ? 20 : isLoss ? 5 : 10;
+                    break;
+                case AiDifficulty.Medium:
+                    eloChange = isWin ? 15 : isLoss ? -15 : 0;
+                    xpChange = isWin ? 30 : isLoss ? 10 : 15;
+                    break;
+                case AiDifficulty.Hard:
+                    eloChange = isWin ? 20 : isLoss ? -20 : 0;
+                    xpChange = isWin ? 50 : isLoss ? 15 : 20;
+                    break;
+            }
+
+            user.Elo = Math.Max(0, user.Elo + eloChange);
+            user.Experience += xpChange;
+            user.TotalMatches++;
+
+            if (isWin) user.Wins++;
+            else if (isLoss) user.Loses++;
+            else user.Draw++;
+
+            // Tính Level hiện tại để trả về
+            int CalculateLevel(int exp)
+            {
+                int lvl = 1;
+                int expNeeded = 0;
+                while (true)
+                {
+                    expNeeded += 100 * lvl * lvl;
+                    if (exp < expNeeded) break;
+                    lvl++;
+                }
+                return lvl;
+            }
+
+            int newLevel = CalculateLevel(user.Experience);
+
+            await _userRepository.UpdateAsync(user);
+
+            var match = new Match
+            {
+                Id = Guid.NewGuid(),
+                WhitePlayerId = dto.PlayerColor == PieceColor.White ? userId : Guid.Empty,
+                BlackPlayerId = dto.PlayerColor == PieceColor.Black ? userId : Guid.Empty,
+                Result = dto.Result,
+                InitialTimeSeconds = dto.InitialTimeSeconds,
+                IsAiGame = true,
+                AiDifficulty = dto.Difficulty,
+                AiColor = dto.PlayerColor == PieceColor.White ? PieceColor.Black : PieceColor.White,
+                PGN = dto.Pgn,
+                StartTime = DateTime.UtcNow,
+                EndTime = DateTime.UtcNow
+            };
+
+            await _matchRepository.AddAsync(match);
+
+            return new AiMatchResultResponse
+            {
+                EloChange = eloChange,
+                XpChange = xpChange,
+                NewElo = user.Elo,
+                NewLevel = newLevel,
+                NewExperience = user.Experience
+            };
+        }
     }
 }

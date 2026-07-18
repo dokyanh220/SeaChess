@@ -10,7 +10,7 @@ class MatchHistoryRepository {
   Future<List<MatchHistoryModel>> getMatchHistory({int limit = 20}) async {
     try {
       final response = await _apiClient.dio.get(
-        '/match/history',
+        'match/history',
         queryParameters: {'limit': limit},
       );
 
@@ -19,6 +19,23 @@ class MatchHistoryRepository {
         return data.map((json) => MatchHistoryModel.fromJson(json)).toList();
       } else {
         throw Exception('Failed to load match history: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      throw Exception('Network error: ${e.message}');
+    }
+  }
+
+  Future<AiMatchResultResponse> saveAiMatchResult(AiMatchResultRequest request) async {
+    try {
+      final response = await _apiClient.dio.post(
+        'match/ai-result',
+        data: request.toJson(),
+      );
+
+      if (response.statusCode == 200) {
+        return AiMatchResultResponse.fromJson(response.data);
+      } else {
+        throw Exception('Failed to save AI match result: ${response.statusCode}');
       }
     } on DioException catch (e) {
       throw Exception('Network error: ${e.message}');

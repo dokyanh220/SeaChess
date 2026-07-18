@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/core/theme/app_theme.dart';
+import 'package:client/domain/models/match_history_model.dart';
+import 'package:client/presentation/providers/match_history_provider.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   /// [isRejoining] = true khi user quay lại từ restart app / mất mạng.
@@ -68,10 +70,42 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final matchState = ref.watch(matchStateProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    ref.listen<MatchState>(matchStateProvider, (prev, next) {
+    ref.listen<MatchState>(matchStateProvider, (prev, next) async {
       if (next.isGameOver && !_dialogShown) {
         _dialogShown = true;
-        _showGameOverDialog(context, next);
+        
+        if (next.isAiGame) {
+          int result = 0; // MatchResult.Pending
+          if (next.gameResult == 'win') {
+            result = next.myColor == 'white' ? 1 : 2; // WhiteWin or BlackWin
+          } else if (next.gameResult == 'lose') {
+            result = next.myColor == 'white' ? 2 : 1; 
+          } else {
+            result = 3; // Draw
+          }
+          
+          final request = AiMatchResultRequest(
+            difficulty: next.aiDifficulty ?? 0,
+            playerColor: next.myColor == 'white' ? 0 : 1,
+            result: result,
+            initialTimeSeconds: 600, // Tạm fix 10p, có thể cấu hình sau
+            pgn: next.fen,
+          );
+          
+          try {
+             final response = await ref.read(matchHistoryRepositoryProvider).saveAiMatchResult(request);
+             if (mounted) {
+               _showGameOverDialog(context, next, aiResponse: response);
+             }
+          } catch (e) {
+             debugPrint('Lỗi khi lưu kết quả AI: $e');
+             if (mounted) {
+               _showGameOverDialog(context, next);
+             }
+          }
+        } else {
+          _showGameOverDialog(context, next);
+        }
       }
     });
 
@@ -588,7 +622,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  void _showGameOverDialog(BuildContext context, MatchState state) {
+  void _showGameOverDialog(BuildContext context, MatchState state, {AiMatchResultResponse? aiResponse}) {
     final colorScheme = Theme.of(context).colorScheme;
     String title;
     Color titleColor;
@@ -618,9 +652,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       'FiftyMoveRule' => 'Luật 50 nước (Hòa)',
       _ => state.gameReason,
     };
-    String eloText = state.eloChange >= 0
-        ? '+${state.eloChange}'
-        : '${state.eloChange}';
+    
+    int eloChange = aiResponse != null ? aiResponse.eloChange : state.eloChange;
+    int newElo = aiResponse != null ? aiResponse.newElo : state.newElo;
+    
+    String eloText = eloChange >= 0 ? '+$eloChange' : '$eloChange';
+    
     showDialog(
       context: context,
       barrierDismissible: false, // Bắt buộc bấm nút
@@ -660,7 +697,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: state.eloChange >= 0
+                    color: eloChange >= 0
                         ? const Color(0xFF4ADE80)
                         : colorScheme.error,
                   ),
@@ -669,9 +706,36 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Elo hiện tại: ${state.newElo}',
+              'Elo hiện tại: $newElo',
               style: TextStyle(fontSize: 14, color: colorScheme.outline),
             ),
+            if (aiResponse != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text(
+                    'Kinh nghiệm: ',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    '+${aiResponse.xpChange} XP',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF4ADE80),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Cấp độ hiện tại: ${aiResponse.newLevel} (${aiResponse.newExperience}/${aiResponse.newLevel * 100} XP)',
+                style: TextStyle(fontSize: 14, color: colorScheme.outline),
+              ),
+            ],
           ],
         ),
         actions: [
