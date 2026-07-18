@@ -7,10 +7,12 @@ namespace SeaChess.Application.Services
     public class UserService : IUserService
     {
         private readonly IUserRepository _context;
+        private readonly IFriendshipRepository _friendshipRepo;
 
-        public UserService(IUserRepository context)
+        public UserService(IUserRepository context, IFriendshipRepository friendshipRepo)
         {
             _context = context;
+            _friendshipRepo = friendshipRepo;
         }
 
         public async Task<UserProfileResponse?> GetUserProfileAsync(Guid userId)
@@ -88,25 +90,38 @@ namespace SeaChess.Application.Services
         public async Task<IEnumerable<UserProfileResponse>> SearchUsersAsync(string query, Guid currentUserId)
         {
             var users = await _context.SearchUsersAsync(query, currentUserId);
+            var results = new List<UserProfileResponse>();
             
-            return users.Select(user => new UserProfileResponse
+            foreach(var user in users) 
             {
-                Id = user.Id,
-                UserId = user.PlayerId,
-                Username = user.Username,
-                DisplayName = user.DisplayName,
-                AvatarUrl = user.AvatarUrl,
-                Experience = user.Experience,
-                Elo = user.Elo,
-                TotalMatches = user.TotalMatches,
-                Wins = user.Wins,
-                Loses = user.Loses,
-                Draw = user.Draw,
-                CreatedAt = user.CreatedAt,
-                WinRate = user.TotalMatches == 0 ? 0 : Math.Round((double)user.Wins / user.TotalMatches * 100, 2),
-                Level = CalculateLevel(user.Experience),
-                Rank = DetermineRank(user.TotalMatches, user.Elo)
-            });
+                var friendship = await _friendshipRepo.GetFriendshipAsync(currentUserId, user.Id);
+                string fStatus = "None";
+                if (friendship != null) {
+                    fStatus = friendship.Status.ToString();
+                }
+
+                results.Add(new UserProfileResponse
+                {
+                    Id = user.Id,
+                    UserId = user.PlayerId,
+                    Username = user.Username,
+                    DisplayName = user.DisplayName,
+                    AvatarUrl = user.AvatarUrl,
+                    Experience = user.Experience,
+                    Elo = user.Elo,
+                    TotalMatches = user.TotalMatches,
+                    Wins = user.Wins,
+                    Loses = user.Loses,
+                    Draw = user.Draw,
+                    CreatedAt = user.CreatedAt,
+                    WinRate = user.TotalMatches == 0 ? 0 : Math.Round((double)user.Wins / user.TotalMatches * 100, 2),
+                    Level = CalculateLevel(user.Experience),
+                    Rank = DetermineRank(user.TotalMatches, user.Elo),
+                    FriendshipStatus = fStatus
+                });
+            }
+            
+            return results;
         }
     }
 }

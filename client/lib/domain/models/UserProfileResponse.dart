@@ -12,6 +12,7 @@ class UserProfile {
   final int loses;
   final int draws;
   final double winRate;
+  final String friendshipStatus;
 
   UserProfile({
     required this.id,
@@ -27,6 +28,7 @@ class UserProfile {
     required this.loses,
     required this.draws,
     required this.winRate,
+    this.friendshipStatus = 'None',
   });
 
   /// EXP tích lũy cần để đạt level hiện tại
@@ -37,6 +39,27 @@ class UserProfile {
       total += 100 * i * i;
     }
     return total;
+  }
+
+  UserProfile copyWith({
+    String? friendshipStatus,
+  }) {
+    return UserProfile(
+      id: id,
+      userId: userId,
+      username: username,
+      displayName: displayName,
+      level: level,
+      elo: elo,
+      rank: rank,
+      experience: experience,
+      totalMatches: totalMatches,
+      wins: wins,
+      loses: loses,
+      draws: draws,
+      winRate: winRate,
+      friendshipStatus: friendshipStatus ?? this.friendshipStatus,
+    );
   }
 
   /// EXP cần để lên level tiếp theo (chỉ phần của level hiện tại)
@@ -67,6 +90,7 @@ class UserProfile {
       loses: json['loses'] ?? 0,
       draws: json['draws'] ?? json['draw'] ?? 0,
       winRate: (json['winRate'] ?? 0).toDouble(),
+      friendshipStatus: json['friendshipStatus'] ?? 'None',
     );
   }
 }

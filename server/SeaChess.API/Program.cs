@@ -87,6 +87,8 @@ builder.Services.AddScoped<IGameStateService, GameStateService>();
 builder.Services.AddScoped<IStockfishService, StockfishService>();
 builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
 builder.Services.AddScoped<IFriendshipService, FriendshipService>();
+builder.Services.AddScoped<IMatchRepository, MatchRepository>();
+builder.Services.AddScoped<IMatchService, MatchService>();
 
 var app = builder.Build();
 

@@ -24,7 +24,20 @@ namespace SeaChess.Application.Services
             if (receiver == null || receiver.Id == requesterId) return false;
 
             var existing = await _friendshipRepository.GetFriendshipAsync(requesterId, receiver.Id);
-            if (existing != null) return false; // Already friends, pending, or blocked
+            if (existing != null)
+            {
+                if (existing.Status != FriendshipStatus.Rejected)
+                {
+                    return false; // Already friends, pending, or blocked
+                }
+
+                // If rejected (removed previously), we can reuse the record
+                existing.Status = FriendshipStatus.Pending;
+                existing.RequesterId = requesterId;
+                existing.ReceiverId = receiver.Id;
+                await _friendshipRepository.UpdateAsync(existing);
+                return true;
+            }
 
             var friendship = new Friendship
             {

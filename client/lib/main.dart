@@ -3,46 +3,28 @@ import 'package:client/presentation/screens/game_screen.dart';
 import 'package:client/presentation/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client/presentation/providers/theme_provider.dart';
 import 'presentation/screens/auth/login_screen.dart';
-
+import 'package:client/core/theme/app_theme.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   runApp(const ProviderScope(child: SeaChessApp()));
 }
 
-class SeaChessApp extends StatelessWidget {
+class SeaChessApp extends ConsumerWidget {
   const SeaChessApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'SeaChess',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        // Oceanic Grandmaster Design System
-        colorScheme: ColorScheme.dark(
-          surface: const Color(0xFF0B1326),
-          primary: const Color(0xFFADC6FF),
-          primaryContainer: const Color(0xFF4D8EFF),
-          secondary: const Color(0xFFFFB95F),
-          secondaryContainer: const Color(0xFFEE9800),
-          tertiary: const Color(0xFF4CD7F6),
-          tertiaryContainer: const Color(0xFF009EB9),
-          error: const Color(0xFFFFB4AB),
-          onSurface: const Color(0xFFDAE2FD),
-          onSurfaceVariant: const Color(0xFFC2C6D6),
-          outline: const Color(0xFF8C909F),
-          outlineVariant: const Color(0xFF424754),
-          surfaceContainerHighest: const Color(0xFF2D3449),
-          surfaceContainerHigh: const Color(0xFF222A3D),
-          surfaceContainer: const Color(0xFF171F33),
-          surfaceContainerLow: const Color(0xFF131B2E),
-          surfaceContainerLowest: const Color(0xFF060E20),
-        ),
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF0B1326),
-      ),
+      themeMode: themeMode,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
       home: const AuthGate(),
     );
   }

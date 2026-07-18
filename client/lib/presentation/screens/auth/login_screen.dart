@@ -3,6 +3,8 @@ import 'package:client/presentation/screens/main_screen.dart';
 import 'package:client/presentation/screens/auth/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client/core/theme/app_theme.dart';
+import 'package:client/presentation/widgets/primary_button.dart';
 
 // Một StateProvider tạm thời để quản lý trạng thái nút bấm (Loading)
 // Ở bước sau, chúng ta sẽ thay thế nó bằng một AuthNotifier thực thụ kết nối với API.
@@ -29,141 +31,110 @@ class _loginScreenState extends ConsumerState<LoginScreen> {
     final isLoading = ref.watch(authNotifierProvider);
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
+          padding: const EdgeInsets.all(AppTheme.spacingXl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Biểu tượng và Tên Game
-              const Icon(Icons.castle, size: 80, color: Colors.blueGrey),
-              const SizedBox(height: 16),
-              const Text(
+              Text(
                 'SeaChess',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                      color: AppTheme.primaryBlue,
+                    ),
               ),
-              const Text(
-                'Cờ Vua Đại Dương',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 48),
+              const SizedBox(height: AppTheme.spacingXXl),
 
               // Ô nhập Tên đăng nhập
               TextFormField(
                 controller: _usernameController,
                 enabled: !isLoading,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Tên đăng nhập',
-                  prefixIcon: const Icon(Icons.person),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  prefixIcon: Icon(Icons.person_outline),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTheme.spacingMd),
 
               // Ô nhập Mật khẩu
               TextFormField(
                 controller: _passwordController,
                 enabled: !isLoading,
                 obscureText: true,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Mật khẩu',
-                  prefixIcon: const Icon(Icons.lock),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  prefixIcon: Icon(Icons.lock_outline),
                 ),
               ),
-              const SizedBox(height: 32),
-
-              // Nút "Vào Trận"
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueGrey,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: isLoading
-                      ? null
-                      : () async {
-                          final user = _usernameController.text.trim();
-                          final pass = _passwordController.text.trim();
-
-                          if (user.isEmpty || pass.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Vui lòng nhập đầy đủ thông tin'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          final success = await ref
-                              .read(authNotifierProvider.notifier)
-                              .login(user, pass);
-
-                          if (success && context.mounted) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const MainScreen(),
-                              ),
-                            );
-                          } else if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Đăng nhập thất bại. Vui lòng kiểm tra lại',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        },
-                  child: isLoading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Đăng nhập',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+              
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: isLoading ? null : () {},
+                  child: Text(
+                    'Quên mật khẩu?',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.primaryBlue,
+                          fontWeight: FontWeight.bold,
                         ),
+                  ),
                 ),
               ),
+              const SizedBox(height: AppTheme.spacingLg),
 
-              const SizedBox(height: 16),
+              // Nút "Đăng nhập"
+              PrimaryButton(
+                text: 'Đăng nhập',
+                isLoading: isLoading,
+                onPressed: () async {
+                  final user = _usernameController.text.trim();
+                  final pass = _passwordController.text.trim();
+
+                  if (user.isEmpty || pass.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Vui lòng nhập đầy đủ thông tin')),
+                    );
+                    return;
+                  }
+
+                  final success = await ref
+                      .read(authNotifierProvider.notifier)
+                      .login(user, pass);
+
+                  if (success && context.mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MainScreen(),
+                      ),
+                    );
+                  } else if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đăng nhập thất bại. Vui lòng kiểm tra lại'),
+                        backgroundColor: AppTheme.dangerRed,
+                      ),
+                    );
+                  }
+                },
+              ),
+
+              const SizedBox(height: AppTheme.spacingMd),
 
               // Nút chuyển sang Đăng ký
-              TextButton(
-                onPressed: isLoading
-                    ? null
-                    : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RegisterScreen(),
-                          ),
-                        );
-                      },
-                child: const Text('Chưa có tài khoản? Đăng ký ngay'),
+              PrimaryButton(
+                text: 'Tạo tài khoản mới',
+                isSecondary: true,
+                isLoading: isLoading,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RegisterScreen(),
+                    ),
+                  );
+                },
               ),
             ],
           ),

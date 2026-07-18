@@ -7,6 +7,7 @@ import 'package:client/presentation/widgets/chess_time_widget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client/core/theme/app_theme.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   /// [isRejoining] = true khi user quay lại từ restart app / mất mạng.
@@ -38,9 +39,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // Đăng ký trước (sẽ được buffer nếu chưa connect)
     signalR.onNoActiveMatch((_) {
       if (!mounted) return;
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const MainScreen()));
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainScreen()),
+        (route) => false,
+      );
     });
 
     try {
@@ -52,8 +54,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       debugPrint('[Rejoin] Lỗi khi rejoin: $e');
       // Lỗi kết nối → về Lobby
       if (mounted) {
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const MainScreen()),
+          (route) => false,
         );
       }
     }
@@ -87,6 +90,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         : matchState.whiteTimeMs;
 
     return Scaffold(
+      backgroundColor: colorScheme.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -94,17 +98,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             _buildTopBar(colorScheme),
 
             // ========== OPPONENT INFO ==========
-            _buildOpponentInfo(
-              matchState,
-              opponentTimeMs,
-              !isMyTurn,
-              colorScheme,
+            _buildProfileCard(
+              matchState: matchState,
+              timeMs: opponentTimeMs,
+              isRunning: !isMyTurn,
+              colorScheme: colorScheme,
+              isOpponent: true,
             ),
 
             // ========== CHESS BOARD ==========
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
                 child: Center(
                   child: ChessBoardWidget(
                     fen: matchState.fen,
@@ -118,9 +123,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     isLocked: matchState.isAiThinking,
                     onMove: (from, to, promotion) {
                       final matchId = ref.read(matchStateProvider).matchId;
-                      print("[Client: $matchId] đánh từ $from đến $to");
 
-                      // ═══ Set AI thinking state TRƯỚC khi gọi makeMove ═══
                       if (matchState.isAiGame) {
                         ref
                             .read(matchStateProvider.notifier)
@@ -128,7 +131,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       }
 
                       if (promotion != null) {
-                        // Tốt phong cấp: hỏi người dùng chọn quân
                         _showPromotionDialog(context, matchId, from, to);
                       } else {
                         ref
@@ -141,32 +143,55 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
 
-            // ========== ACTION BUTTONS & MY TIMER ==========
-            _buildActionButtonsAndTimer(
+            // ========== PLAYER INFO ==========
+            _buildProfileCard(
+              matchState: matchState,
+              timeMs: myTimeMs,
+              isRunning: isMyTurn,
+              colorScheme: colorScheme,
+              isOpponent: false,
+            ),
+
+            // ========== ACTION BUTTONS ==========
+            _buildActionButtons(
               matchState,
-              myTimeMs,
-              isMyTurn,
               colorScheme,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.spacingSm),
           ],
         ),
       ),
     );
   }
 
-  /// Top bar thay thế AppBar
   Widget _buildTopBar(ColorScheme colorScheme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd, vertical: AppTheme.spacingSm),
       child: Row(
         children: [
-          Text(
-            'SeaChess Arena',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: colorScheme.onSurface,
+          IconButton(
+            icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
+            onPressed: () {
+              final matchState = ref.read(matchStateProvider);
+              if (matchState.isGameOver) {
+                Navigator.of(context).pop();
+              } else {
+                _showResignConfirmDialog(
+                  context,
+                  matchState.matchId,
+                  matchState.isAiGame,
+                  colorScheme,
+                );
+              }
+            },
+          ),
+          const SizedBox(width: AppTheme.spacingSm),
+          Expanded(
+            child: Text(
+              'SeaChess Arena',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.primaryBlue,
+                  ),
             ),
           ),
         ],
@@ -174,19 +199,25 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  /// Info bar cho đối thủ
-  Widget _buildOpponentInfo(
-    MatchState matchState,
-    double timeMs,
-    bool isRunning,
-    ColorScheme colorScheme,
-  ) {
+  /// Info bar cho người chơi / đối thủ
+  Widget _buildProfileCard({
+    required MatchState matchState,
+    required double timeMs,
+    required bool isRunning,
+    required ColorScheme colorScheme,
+    required bool isOpponent,
+  }) {
+    final name = isOpponent ? matchState.opponentName : matchState.myName;
+    final elo = isOpponent ? matchState.opponentElo : matchState.myElo;
+    final rank = isOpponent ? matchState.opponentRank : matchState.myRank;
+    final level = isOpponent ? matchState.opponentLevel : matchState.myLevel;
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHigh.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isRunning
               ? colorScheme.tertiary.withOpacity(0.3)
@@ -197,44 +228,51 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Avatar Placeholder
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: isOpponent ? colorScheme.error.withOpacity(0.2) : colorScheme.primary.withOpacity(0.2),
+            child: Icon(
+              isOpponent ? Icons.person_outline : Icons.person,
+              color: isOpponent ? colorScheme.error : colorScheme.primary,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Hàng 1: Tên, Elo, Rank
+                // Hàng 1: Tên
+                Text(
+                  name.isEmpty ? (isOpponent ? 'Đối thủ' : 'Tôi') : name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                // Hàng 2: Elo, Rank
                 Row(
                   children: [
-                    Flexible(
-                      child: Text(
-                        matchState.opponentName,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (matchState.opponentElo > 0)
+                    if (elo > 0)
                       _buildSmallChip(
-                        'Elo ${matchState.opponentElo}',
+                        'Elo $elo',
                         colorScheme.secondaryContainer,
                       ),
-                    const SizedBox(width: 6),
+                    if (elo > 0) const SizedBox(width: 6),
                     _buildSmallChip(
-                      matchState.opponentRank,
-                      Color(RankHelper.getRankColor(matchState.opponentRank)),
+                      rank,
+                      Color(RankHelper.getRankColor(rank)),
                     ),
+                    if (level > 0) ...[
+                      const SizedBox(width: 6),
+                      _buildSmallChip('Lv.$level', colorScheme.primaryContainer),
+                    ]
                   ],
                 ),
-                const SizedBox(height: 6),
-                // Hàng 2: Lv. X
-                if (matchState.opponentLevel > 0)
-                  _buildSmallChip(
-                    'Lv.${matchState.opponentLevel}',
-                    colorScheme.primaryContainer,
-                  ),
               ],
             ),
           ),
@@ -264,27 +302,24 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  /// Action buttons: Đầu hàng + Xin hòa + My Timer
-  Widget _buildActionButtonsAndTimer(
+  /// Action buttons: Đầu hàng / Thoát trận + Xin hòa
+  Widget _buildActionButtons(
     MatchState matchState,
-    double timeMs,
-    bool isRunning,
     ColorScheme colorScheme,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           // Nút Đầu hàng
           Expanded(
-            flex: 2,
             child: SizedBox(
-              height: 42,
+              height: 48,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: colorScheme.error.withOpacity(0.6)),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 onPressed: () => _showResignConfirmDialog(
@@ -296,12 +331,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 icon: Icon(
                   matchState.isAiGame ? Icons.exit_to_app : Icons.flag,
                   color: colorScheme.error,
-                  size: 18,
+                  size: 20,
                 ),
                 label: Text(
                   matchState.isAiGame ? 'Thoát trận' : 'Đầu hàng',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: colorScheme.error,
                   ),
@@ -309,12 +344,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           // Nút Xin hòa (disabled)
           Expanded(
-            flex: 2,
             child: SizedBox(
-              height: 42,
+              height: 48,
               child: Tooltip(
                 message: 'Tính năng sắp ra mắt',
                 child: OutlinedButton.icon(
@@ -323,26 +357,26 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       color: colorScheme.outline.withOpacity(0.3),
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   onPressed: null, // Disabled
                   icon: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('🤝', style: const TextStyle(fontSize: 16)),
-                      const SizedBox(width: 2),
+                      Text('🤝', style: const TextStyle(fontSize: 18)),
+                      const SizedBox(width: 4),
                       Icon(
                         Icons.lock_outline,
-                        size: 12,
+                        size: 14,
                         color: colorScheme.outline.withOpacity(0.5),
                       ),
                     ],
                   ),
                   label: Text(
-                    'Xin hòa',
+                    'Cầu hòa',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: colorScheme.outline.withOpacity(0.5),
                     ),
@@ -351,9 +385,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          // My Timer
-          ChessTimerWidget(initialTimeMs: timeMs, isRunning: isRunning),
         ],
       ),
     );
@@ -541,8 +572,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               Navigator.pop(context); // Đóng dialog
               ref.read(signalRServiceProvider).resign(matchId);
               if (isAiGame) {
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const MainScreen()),
+                  (route) => false,
                 );
               }
             },
@@ -651,8 +683,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ),
             ),
             onPressed: () {
-              Navigator.of(context).pop(); // Đóng dialog
-              Navigator.of(context).pop(); // Quay về Lobby
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const MainScreen()),
+                (route) => false,
+              );
             },
             child: const Text(
               'Về Sảnh Chờ',

@@ -1,15 +1,17 @@
 import 'package:client/core/services/local_storage_service.dart';
 import 'package:client/presentation/screens/auth/login_screen.dart';
+import 'package:client/presentation/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ===== Game =====
   bool _showMoves = true;
   bool _showCoordinates = true;
@@ -115,6 +117,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: 'Rung thiết bị khi bị chiếu tướng',
                   value: _vibrateOnCheck,
                   onChanged: (v) => setState(() => _vibrateOnCheck = v),
+                  colorScheme: colorScheme,
+                ),
+                _buildDivider(colorScheme),
+                _buildSwitchTile(
+                  icon: Icons.dark_mode_rounded,
+                  title: 'Chế độ Tối',
+                  subtitle: 'Giao diện tối (Dark Mode)',
+                  value: ref.watch(themeModeProvider) == ThemeMode.dark ||
+                      (ref.watch(themeModeProvider) == ThemeMode.system &&
+                          MediaQuery.of(context).platformBrightness == Brightness.dark),
+                  onChanged: (v) {
+                    ref.read(themeModeProvider.notifier).toggleTheme(context);
+                  },
                   colorScheme: colorScheme,
                 ),
                 _buildDivider(colorScheme),
@@ -318,7 +333,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Tính năng đang phát triển'),
-            backgroundColor: colorScheme.surfaceContainerHigh,
             duration: const Duration(seconds: 1),
           ),
         );
@@ -392,7 +406,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Tính năng đang phát triển'),
-            backgroundColor: colorScheme.surfaceContainerHigh,
             duration: const Duration(seconds: 1),
           ),
         );

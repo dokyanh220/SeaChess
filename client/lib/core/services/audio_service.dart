@@ -7,9 +7,23 @@ class AudioService {
   final AudioPlayer _gameOverPlayer = AudioPlayer();
 
   Future<void> init() async {
-    await _movePlayer.setSource(AssetSource('audio/move.mp3'));
-    await _checkPlayer.setSource(AssetSource('audio/check.mp3'));
-    await _gameOverPlayer.setSource(AssetSource('audio/game_over.mp3'));
+    try {
+      await _movePlayer.setSource(AssetSource('audio/move.mp3'));
+    } catch (e) {
+      print("Could not load move.mp3: $e");
+    }
+    
+    try {
+      await _checkPlayer.setSource(AssetSource('audio/check.mp3'));
+    } catch (e) {
+      print("Could not load check.mp3: $e");
+    }
+    
+    try {
+      await _gameOverPlayer.setSource(AssetSource('audio/game_over.mp3'));
+    } catch (e) {
+      print("Could not load game_over.mp3: $e");
+    }
   }
 
   Future<void> playMoveSound() async {

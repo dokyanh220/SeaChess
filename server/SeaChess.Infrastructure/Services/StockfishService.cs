@@ -23,8 +23,12 @@ namespace SeaChess.Infrastructure.Services
         public StockfishService(IConfiguration config)
         {
             _enginePath = config["Stockfish:Path"] ?? "stockfish";
-            // Không khởi tạo engine ngay ở constructor nữa
-            // Sẽ khởi tạo lần đầu khi cần (lazy init)
+            
+            // Auto-detect OS and use the appropriate binary if the configured one is a Windows executable
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
+            {
+                _enginePath = "stockfish-ubuntu-x86-64-avx2";
+            }
         }
 
         /// <summary>
@@ -68,7 +72,7 @@ namespace SeaChess.Infrastructure.Services
             SendCommand("isready");
             WaitForResponse("readyok");
 
-            Console.WriteLine("[Stockfish] Engine initialized successfully");
+            // Console.WriteLine("[Stockfish] Engine initialized successfully");
         }
 
         public async Task<string> GetBestMoveAsync(string fen, AiDifficulty difficulty)
@@ -86,7 +90,7 @@ namespace SeaChess.Infrastructure.Services
                     string? randomMove = GetRandomLegalMove(fen);
                     if (randomMove != null)
                     {
-                        Console.WriteLine($"[Stockfish] (Random) FEN: {fen} | BestMove: {randomMove}");
+                        // Console.WriteLine($"[Stockfish] (Random) FEN: {fen} | BestMove: {randomMove}");
                         return randomMove;
                     }
                 }
@@ -113,7 +117,7 @@ namespace SeaChess.Infrastructure.Services
                 SendCommand($"go depth {settings.Depth} movetime {settings.ThinkTimeMs}");
                 
                 var bestMove = await ReadBestMoveAsync();
-                Console.WriteLine($"[Stockfish] FEN: {fen} | Difficulty: {difficulty} | BestMove: {bestMove}");
+                // Console.WriteLine($"[Stockfish] FEN: {fen} | Difficulty: {difficulty} | BestMove: {bestMove}");
                 return bestMove;
             }
             finally

@@ -223,7 +223,7 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
 
             const SizedBox(height: 36),
             // ═══════════════════════════════════════════
-            // Nút Bắt đầu
+            // Nút Bắt đầu trận đấu
             // ═══════════════════════════════════════════
             SizedBox(
               width: double.infinity,
@@ -231,12 +231,12 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF3B82F6), Color(0xFF7C3AED)],
+                    colors: [Color(0xFF3C94D4), Color(0xFF2A7DB8)],
                   ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF3B82F6).withOpacity(0.3),
+                      color: const Color(0xFF3C94D4).withOpacity(0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -263,12 +263,10 @@ class _AiSetupScreenState extends ConsumerState<AiSetupScreen> {
                       : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('🤖', style: TextStyle(fontSize: 22)),
-                            SizedBox(width: 10),
                             Text(
-                              'Bắt đầu',
+                              'Bắt đầu trận đấu',
                               style: TextStyle(
-                                fontSize: 20,
+                                fontSize: 18,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
                               ),

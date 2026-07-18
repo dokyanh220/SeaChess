@@ -496,8 +496,8 @@ namespace SeaChess.API.Hubs
                     NewElo = 0,
                 });
 
-                Console.WriteLine($"[AI Game Over] {matchState.MatchID} | " +
-                    $"Result: {resultForHuman} | Reason: {reason}");
+                // Console.WriteLine($"[AI Game Over] {matchState.MatchID} | " +
+                //     $"Result: {resultForHuman} | Reason: {reason}");
                 return;
             }
 
@@ -596,7 +596,7 @@ namespace SeaChess.API.Hubs
             {
                 await _gameState.DeleteStateAsync(matchId);
                 await _gameState.ClearActiveMatchForUserAsync(userId);
-                Console.WriteLine($"[AI Game Quit] {matchState.MatchID} deleted by {userId}");
+                // Console.WriteLine($"[AI Game Quit] {matchState.MatchID} deleted by {userId}");
                 return;
             }
 

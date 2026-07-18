@@ -1,12 +1,17 @@
 import 'dart:async';
 
-import 'package:client/domain/utils/rank_helper.dart';
+
 import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:client/presentation/providers/game_providers.dart';
 import 'package:client/presentation/screens/game_screen.dart';
 import 'package:client/presentation/screens/ai_setup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client/presentation/screens/match_history_screen.dart';
+import 'package:client/core/theme/app_theme.dart';
+import 'package:client/presentation/widgets/primary_button.dart';
+import 'package:client/presentation/widgets/player_profile_card.dart';
+import 'package:client/presentation/widgets/statistic_card.dart';
 
 class LobbyScreen extends ConsumerStatefulWidget {
   const LobbyScreen({super.key});
@@ -19,7 +24,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   bool _isConnecting = false;
   bool _isSearching = false;
 
-  // Stopwatch đếm thời gian tìm trận
   Timer? _searchTimer;
   int _searchSeconds = 0;
 
@@ -42,11 +46,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
       final signalR = ref.read(signalRServiceProvider);
 
       await signalR.connect();
-      print("[Client] kết nối thành công");
 
       signalR.onMatchStarted((args) {
         if (args == null || args.length < 3) return;
-        print("[Client] Ghép trận thành công");
 
         final matchId = args[0].toString();
         final initialFen = args[1].toString();
@@ -69,15 +71,16 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             context,
             MaterialPageRoute(builder: (context) => const GameScreen()),
           ).then((_) {
-            // Khi từ GameScreen quay về LobbyScreen, cần lấy lại profile
             ref.invalidate(userProfileProvider);
           });
         }
       });
     } catch (e) {
-      print("[Client] Lỗi kết nối: $e");
+      debugPrint("[Client] Lỗi kết nối: $e");
     } finally {
-      setState(() => _isConnecting = false);
+      if (mounted) {
+        setState(() => _isConnecting = false);
+      }
     }
   }
 
@@ -85,7 +88,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     _searchSeconds = 0;
     _searchTimer?.cancel();
     _searchTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() => _searchSeconds++);
+      if (mounted) {
+        setState(() => _searchSeconds++);
+      }
     });
   }
 
@@ -103,9 +108,16 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileProvider);
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'SeaChess',
+          style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                color: AppTheme.primaryBlue,
+              ),
+        )
+      ),
       body: SafeArea(
         child: profileAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -115,74 +127,83 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
               return const Center(child: Text('Không tìm thấy thông tin'));
             }
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.all(AppTheme.spacingMd),
               child: Column(
                 children: [
-                  // ========== HEADER ==========
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Profile Section
+                  PlayerProfileCard(
+                    username: profile.displayName,
+                    elo: profile.elo,
+                    level: profile.level,
+                    exp: profile.currentLevelExp,
+                    maxExp: profile.expForNextLevel,
+                    rank: profile.rank,
+                  ),
+                  const SizedBox(height: AppTheme.spacingMd),
+
+                  // Stats Section
+                  StatisticCard(
+                    totalMatches: profile.totalMatches,
+                    wins: profile.wins,
+                    losses: profile.loses,
+                    draws: profile.draws,
+                    winRate: profile.winRate,
+                  ),
+                  const SizedBox(height: AppTheme.spacingLg),
+
+                  // Matchmaking Section
+                  if (_isSearching)
+                    _buildSearchingUI()
+                  else
+                    Column(
                       children: [
-                        Text(
-                          'SeaChess',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.onSurface,
-                            letterSpacing: -0.5,
-                          ),
+                        PrimaryButton(
+                          text: 'TÌM TRẬN',
+                          onPressed: _isConnecting
+                              ? () {}
+                              : () async {
+                                  setState(() => _isSearching = true);
+                                  _startSearchTimer();
+                                  final signalR = ref.read(signalRServiceProvider);
+                                  await signalR.ensureConnected();
+                                  await signalR.findMatch();
+                                },
+                        ),
+                        const SizedBox(height: AppTheme.spacingMd),
+                        PrimaryButton(
+                          text: 'Đấu với Máy',
+                          isSecondary: true,
+                          onPressed: _isConnecting
+                              ? () {}
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const AiSetupScreen()),
+                                  );
+                                },
+                        ),
+                        const SizedBox(height: AppTheme.spacingMd),
+                        PrimaryButton(
+                          text: 'Lịch sử trận đấu',
+                          isSecondary: true,
+                          onPressed: _isConnecting
+                              ? () {}
+                              : () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const MatchHistoryScreen()),
+                                  );
+                                },
                         ),
                       ],
                     ),
-                  ),
 
-                  // ========== PROFILE CARD ==========
-                  _buildProfileCard(profile, colorScheme),
-                  const SizedBox(height: 12),
-
-                  // ========== STATS PANEL ==========
-                  _buildStatsPanel(profile, colorScheme),
-                  const SizedBox(height: 16),
-
-                  // ========== EXP BAR ==========
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHigh.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: _buildExpBar(profile, colorScheme),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // ========== MATCHMAKING ==========
-                  _buildMatchmakingSection(colorScheme),
-
-                  // ========== CONNECTING STATUS ==========
                   if (_isConnecting)
                     Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: colorScheme.tertiary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Đang kết nối Server...',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                      padding: const EdgeInsets.only(top: AppTheme.spacingMd),
+                      child: Text(
+                        'Đang kết nối Server...',
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                 ],
@@ -194,537 +215,48 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     );
   }
 
-  Widget _buildProfileCard(dynamic profile, ColorScheme colorScheme) {
+  Widget _buildSearchingUI() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Bên trái: Tên, ID
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  profile.displayName,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'ID: ${profile.userId}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Bên phải: Icon rank + tên rank + progress bar elo
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: Image.asset(
-                      RankHelper.getRankLargeAssetPath(profile.rank),
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.shield,
-                        size: 30,
-                        color: Color(RankHelper.getRankColor(profile.rank)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    profile.rank,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Color(RankHelper.getRankColor(profile.rank)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Builder(
-                builder: (context) {
-                  final int currentElo = profile.elo as int;
-                  // Giả lập mốc Elo tiếp theo (target) là bội số của 100 tiếp theo
-                  final int targetElo = ((currentElo ~/ 100) + 1) * 100;
-                  final double progress = (currentElo % 100) / 100.0;
-                  
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Elo: $currentElo / $targetElo',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.tertiary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      // Progress bar Elo
-                      Container(
-                        width: 100,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerLowest,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: progress.clamp(0.0, 1.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Color(RankHelper.getRankColor(profile.rank)),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                }
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Badge hiển thị label + value
-  Widget _buildBadge(
-    String label,
-    String value,
-    Color accentColor,
-    ColorScheme colorScheme,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: accentColor.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: accentColor,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: colorScheme.onSurface,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Badge cho Rank với icon nhỏ
-  Widget _buildRankBadge(String rank, ColorScheme colorScheme) {
-    final rankColor = Color(RankHelper.getRankColor(rank));
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: rankColor.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: rankColor.withOpacity(0.3), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 18,
-            height: 18,
-            child: Image.asset(
-              RankHelper.getRankAssetPath(rank),
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) =>
-                  Icon(Icons.shield, size: 14, color: rankColor),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            rank,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: rankColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Thanh EXP progress bar
-  Widget _buildExpBar(dynamic profile, ColorScheme colorScheme) {
-    final progress = profile.expProgress as double;
-    final currentExp = profile.currentLevelExp as int;
-    final maxExp = profile.expForNextLevel as int;
-
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'EXP',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurfaceVariant,
-                letterSpacing: 1,
-              ),
-            ),
-            Text(
-              '$currentExp / $maxExp',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.tertiary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            height: 8,
-            child: Stack(
-              children: [
-                // Background
-                Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerLowest,
-                  ),
-                ),
-                // Progress fill
-                FractionallySizedBox(
-                  widthFactor: progress.clamp(0.0, 1.0),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF3B82F6), Color(0xFF06B6D4)],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Panel thống kê: TotalMatches, WinRate, Wins, Losses, Draws
-  Widget _buildStatsPanel(dynamic profile, ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainer.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusMd),
+        border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.3)),
       ),
       child: Column(
         children: [
-          // Row 1
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem(
-                  'Cấp độ',
-                  '${profile.level}',
-                  colorScheme.primary,
-                  colorScheme,
-                ),
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  'Trận đấu',
-                  '${profile.totalMatches}',
-                  colorScheme.onSurface,
-                  colorScheme,
-                ),
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  'Tỉ lệ thắng',
-                  '${profile.winRate.toStringAsFixed(1)}%',
-                  colorScheme.tertiary,
-                  colorScheme,
-                ),
-              ),
-            ],
+          const CircularProgressIndicator(
+            color: AppTheme.primaryBlue,
+            strokeWidth: 3,
           ),
-          const SizedBox(height: 12),
-          // Row 2
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem(
-                  'Thắng',
-                  '${profile.wins}',
-                  const Color(0xFF4ADE80),
-                  colorScheme,
+          const SizedBox(height: AppTheme.spacingMd),
+          Text(
+            'Đang tìm đối thủ...',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: colorScheme.onSurface,
                 ),
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  'Thua',
-                  '${profile.loses}',
-                  const Color(0xFFFF6B6B),
-                  colorScheme,
+          ),
+          const SizedBox(height: AppTheme.spacingSm),
+          Text(
+            _formatSearchTime(),
+            style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                  color: AppTheme.primaryBlue,
+                  fontFamily: 'monospace',
                 ),
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  'Hòa',
-                  '${profile.draws}',
-                  const Color(0xFFFFB95F),
-                  colorScheme,
-                ),
-              ),
-            ],
+          ),
+          const SizedBox(height: AppTheme.spacingLg),
+          PrimaryButton(
+            text: 'Hủy tìm trận',
+            isSecondary: true,
+            onPressed: () async {
+              await ref.read(signalRServiceProvider).cancelMatch();
+              _stopSearchTimer();
+              setState(() => _isSearching = false);
+            },
           ),
         ],
       ),
-    );
-  }
-
-  /// Từng stat item
-  Widget _buildStatItem(
-    String label,
-    String value,
-    Color valueColor,
-    ColorScheme colorScheme,
-  ) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurfaceVariant,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: valueColor,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Section tìm trận: nút tìm / hủy + stopwatch
-  Widget _buildMatchmakingSection(ColorScheme colorScheme) {
-    if (_isSearching) {
-      return Column(
-        children: [
-          // Searching animation container
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: colorScheme.primaryContainer.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              children: [
-                // Pulsing indicator
-                SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    color: colorScheme.tertiary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Đang tìm đối thủ...',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Stopwatch timer
-                Text(
-                  _formatSearchTime(),
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.tertiary,
-                    fontFamily: 'monospace',
-                    letterSpacing: 2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Nút Hủy
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: colorScheme.error),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              onPressed: () async {
-                await ref.read(signalRServiceProvider).cancelMatch();
-                _stopSearchTimer();
-                setState(() => _isSearching = false);
-              },
-              child: Text(
-                'Hủy tìm trận',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.error,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    // ═══ Nút Đấu với Máy + Tìm Trận ═══
-    return Column(
-      children: [
-        // Nút Đấu với Máy
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: colorScheme.primaryContainer),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-            ),
-            onPressed: _isConnecting
-                ? null
-                : () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AiSetupScreen()),
-                    );
-                  },
-            label: Text(
-              'Đấu với Máy',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.primary,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Nút Tìm Trận
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF3B82F6), Color(0xFF7C3AED)],
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF3B82F6).withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-              onPressed: _isConnecting
-                  ? null
-                  : () async {
-                      setState(() => _isSearching = true);
-                      _startSearchTimer();
-                      final signalR = ref.read(signalRServiceProvider);
-                      await signalR.ensureConnected();
-                      await signalR.findMatch();
-                    },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(width: 10),
-                  Text(
-                    'Tìm Trận',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

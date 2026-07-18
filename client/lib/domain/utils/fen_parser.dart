@@ -2,6 +2,8 @@ class FenParser {
   /// Chuyển chuỗi FEN thành mảng 64 phần tử.
   /// Ô trống là chuỗi rỗng '', có quân cờ sẽ là chữ cái (p, P, r, R...)
   static List<String> parseBoard(String fen) {
+    if (fen.isEmpty) return List.filled(64, '');
+
     // Lấy phần đầu tiên bỏ qua các thông tin lượt đi
     final boardPart = fen.split(' ')[0];
     final List<String> board = [];

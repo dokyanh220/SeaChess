@@ -131,7 +131,7 @@ class SignalrService {
     String toPosition,
     String promotionPiece,
   ) async {
-    debugPrint('promotionPiece: $promotionPiece, type: ${promotionPiece.runtimeType}');
+    // debugPrint('promotionPiece: $promotionPiece, type: ${promotionPiece.runtimeType}');
     await _hubConnection?.invoke(
       'MakeMove',
       args: [matchId, fromPosition, toPosition, promotionPiece],

@@ -19,8 +19,14 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     final notificationState = ref.watch(notificationStateProvider);
     final pendingCount = notificationState.pendingRequestsCount;
 
+    ref.listen(notificationStateProvider, (previous, next) {
+      if (previous?.pendingRequestsCount != next.pendingRequestsCount) {
+        _fetchData();
+      }
+    });
+
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: colorScheme.surface,
         appBar: AppBar(
@@ -42,7 +48,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
               fontSize: 16,
             ),
             tabs: [
-              const Tab(text: 'Danh sách'),
+              const Tab(text: 'Bạn bè'),
+              const Tab(text: 'Tìm kiếm'),
               Tab(
                 child: Badge(
                   isLabelVisible: pendingCount > 0,
@@ -56,7 +63,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
         ),
         body: TabBarView(
           children: [
-            _buildFriendsTab(colorScheme),
+            _buildFriendsOnlyTab(colorScheme),
+            _buildSearchTab(colorScheme),
             _buildRequestsTab(colorScheme),
           ],
         ),
@@ -124,7 +132,26 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     });
   }
 
-  Widget _buildFriendsTab(ColorScheme colorScheme) {
+  Widget _buildFriendsOnlyTab(ColorScheme colorScheme) {
+    if (_isLoadingData) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_friends.isEmpty) {
+      return const Center(child: Text("Bạn chưa có người bạn nào"));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _friends.length,
+      itemBuilder: (context, index) {
+        final friend = _friends[index];
+        return _buildFriendItem(friend, colorScheme);
+      },
+    );
+  }
+
+  Widget _buildSearchTab(ColorScheme colorScheme) {
     return Column(
       children: [
         // ========== SEARCH BAR ==========
@@ -165,9 +192,9 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
           ),
         ),
         
-        // ========== FRIENDS LIST / SEARCH RESULTS ==========
+        // ========== SEARCH RESULTS ==========
         Expanded(
-          child: _isLoading || _isLoadingData
+          child: _isLoading 
             ? const Center(child: CircularProgressIndicator())
             : _isSearching
                 ? ListView.builder(
@@ -178,16 +205,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                       return _buildSearchResultItem(user, colorScheme);
                     },
                   )
-                : _friends.isEmpty
-                  ? const Center(child: Text("Bạn chưa có người bạn nào"))
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _friends.length,
-                      itemBuilder: (context, index) {
-                        final friend = _friends[index];
-                        return _buildFriendItem(friend, colorScheme);
-                      },
-                    ),
+                : const Center(child: Text("Nhập ID hoặc tên để tìm kiếm")),
         ),
       ],
     );
@@ -233,25 +251,47 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
               ],
             ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          if (user.friendshipStatus != 'Accepted')
+            if (user.friendshipStatus == 'Pending')
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: colorScheme.primary.withOpacity(0.5)),
+                  foregroundColor: colorScheme.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: null, // Disabled
+                child: const Text('Đã gửi'),
+              )
+            else
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () async {
+                  final repo = ref.read(friendshipRepositoryProvider);
+                  final success = await repo.sendFriendRequest(user.username);
+                  if (mounted) {
+                    if (success) {
+                      setState(() {
+                        final index = _searchResults.indexWhere((u) => u.id == user.id);
+                        if (index != -1) {
+                          _searchResults[index] = user.copyWith(friendshipStatus: 'Pending');
+                        }
+                      });
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(success ? 'Đã gửi lời mời!' : 'Lỗi khi gửi lời mời')),
+                    );
+                  }
+                },
+                child: const Text('Kết bạn'),
               ),
-            ),
-            onPressed: () async {
-              final repo = ref.read(friendshipRepositoryProvider);
-              final success = await repo.sendFriendRequest(user.username);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(success ? 'Đã gửi lời mời!' : 'Lỗi khi gửi lời mời')),
-                );
-              }
-            },
-            child: const Text('Kết bạn'),
-          ),
         ],
       ),
     );

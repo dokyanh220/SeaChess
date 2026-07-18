@@ -140,6 +140,10 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(color: const Color(0xFF3E2614), width: 4),
+          image: const DecorationImage(
+            image: AssetImage('assets/boards/board.png'),
+            fit: BoxFit.cover,
+          ),
         ),
         child: GridView.builder(
           physics: const NeverScrollableScrollPhysics(),
@@ -172,8 +176,8 @@ class _ChessBoardWidgetState extends State<ChessBoardWidget>
             bool canDrag = isMyTurn && isMyPiece;
 
             Color baseColor = isLightSquare
-                ? const Color(0xFFF0D9B5)
-                : const Color(0xFFB58863);
+                ? Colors.transparent
+                : Colors.black.withOpacity(0.15);
             Color coordColor = isLightSquare
                 ? const Color(0xFFB58863)
                 : const Color(0xFFF0D9B5);
