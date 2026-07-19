@@ -78,7 +78,7 @@ class _ReplayScreenState extends ConsumerState<ReplayScreen> {
     
     if (widget.match.pgn != null && widget.match.pgn!.isNotEmpty) {
       if (widget.match.pgn!.contains(';')) {
-        _fens = widget.match.pgn!.split(';');
+        _fens = widget.match.pgn!.split(';').where((fen) => fen.trim().isNotEmpty).toList();
       } else {
         bool success = _chess.load_pgn(widget.match.pgn!);
         if (success) {
@@ -171,6 +171,13 @@ class _ReplayScreenState extends ConsumerState<ReplayScreen> {
     _playbackTimer = Timer.periodic(Duration(milliseconds: interval), (timer) {
       if (_currentIndex < _fens.length - 1) {
         _updateCurrentIndex(_currentIndex + 1);
+        // Nếu chạm tới nước đi cuối cùng, lập tức dừng và cập nhật giao diện
+        if (_currentIndex >= _fens.length - 1) {
+          setState(() {
+            _isPlaying = false;
+          });
+          timer.cancel();
+        }
       } else {
         setState(() {
           _isPlaying = false;
@@ -190,12 +197,26 @@ class _ReplayScreenState extends ConsumerState<ReplayScreen> {
   }
 
   void _nextStep() {
+    // Tự động tạm dừng phát tự động nếu đang chạy
+    if (_isPlaying) {
+      _playbackTimer?.cancel();
+      setState(() {
+        _isPlaying = false;
+      });
+    }
     if (_currentIndex < _fens.length - 1) {
       _updateCurrentIndex(_currentIndex + 1);
     }
   }
 
   void _prevStep() {
+    // Tự động tạm dừng phát tự động nếu đang chạy
+    if (_isPlaying) {
+      _playbackTimer?.cancel();
+      setState(() {
+        _isPlaying = false;
+      });
+    }
     if (_currentIndex > 0) {
       _updateCurrentIndex(_currentIndex - 1);
     }
@@ -311,6 +332,13 @@ class _ReplayScreenState extends ConsumerState<ReplayScreen> {
                     bool isCurrent = index + 1 == _currentIndex;
                     return GestureDetector(
                       onTap: () {
+                        // Tự động tạm dừng phát tự động nếu đang chạy
+                        if (_isPlaying) {
+                          _playbackTimer?.cancel();
+                          setState(() {
+                            _isPlaying = false;
+                          });
+                        }
                         _updateCurrentIndex(index + 1);
                       },
                       child: Container(

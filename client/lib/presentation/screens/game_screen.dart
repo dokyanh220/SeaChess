@@ -89,7 +89,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             playerColor: next.myColor == 'white' ? 0 : 1,
             result: result,
             initialTimeSeconds: 600, // Tạm fix 10p, có thể cấu hình sau
-            pgn: next.fen,
+            pgn: next.fenHistory.isNotEmpty ? next.fenHistory.join(';') : next.fen,
           );
           
           try {

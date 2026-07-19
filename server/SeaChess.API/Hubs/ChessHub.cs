@@ -439,7 +439,7 @@ namespace SeaChess.API.Hubs
                 // Check bí và luật để endgame
                 if (GameStateAnalyzer.IsCheckmate(aiBoard, humanColor))
                 {
-                    string winnerId = userId;
+                    string winnerId = "AI";
                     await EndGame(matchState, winnerId, "Checkmate");
                     return;
                 }
