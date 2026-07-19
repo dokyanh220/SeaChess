@@ -5,7 +5,6 @@ import 'package:client/presentation/screens/main_screen.dart';
 import 'package:client/presentation/widgets/chess_board_widget.dart';
 import 'package:client/presentation/widgets/chess_time_widget.dart';
 import 'package:flutter/foundation.dart';
-import 'package:client/presentation/widgets/captured_pieces_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/core/theme/app_theme.dart';
@@ -90,7 +89,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             playerColor: next.myColor == 'white' ? 0 : 1,
             result: result,
             initialTimeSeconds: 600, // Tạm fix 10p, có thể cấu hình sau
-            pgn: next.fenHistory.join(';'),
+            pgn: next.fen,
           );
           
           try {
@@ -247,9 +246,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final rank = isOpponent ? matchState.opponentRank : matchState.myRank;
     final level = isOpponent ? matchState.opponentLevel : matchState.myLevel;
 
-    final bool isMyColorWhite = matchState.myColor == 'white';
-    final bool showWhitePieces = isOpponent ? isMyColorWhite : !isMyColorWhite;
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -263,13 +259,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           width: 1,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Avatar Placeholder
+          // Avatar Placeholder
           CircleAvatar(
             radius: 20,
             backgroundColor: isOpponent ? colorScheme.error.withOpacity(0.2) : colorScheme.primary.withOpacity(0.2),
@@ -319,16 +312,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           ),
           // Timer
           ChessTimerWidget(initialTimeMs: timeMs, isRunning: isRunning),
-            ],
-          ),
-          if (matchState.fen.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: CapturedPiecesWidget(
-                currentFen: matchState.fen, 
-                isWhite: showWhitePieces,
-              ),
-            ),
         ],
       ),
     );

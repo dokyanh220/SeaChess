@@ -1,16 +1,15 @@
 import 'package:chess/chess.dart';
 
 void main() {
-  var chess = Chess();
-  var pgn = "1. e4 e5 2. Nf3 Nc6";
-  bool success = chess.load_pgn(pgn);
-  print('Load success: $success');
+  // FEN with White Kingside Rook captured by Black Knight (n at h1), castling rights KQkq intact
+  var FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNB1K2n w KQkq - 0 1";
+  var chess = Chess.fromFEN(FEN);
   
-  List<String> tempFens = [chess.fen];
-  while (chess.undo() != null) {
-    tempFens.add(chess.fen);
+  print('FEN: ${chess.fen}');
+  
+  var moves = chess.moves({'square': 'e1', 'verbose': true});
+  print('Moves for e1:');
+  for (var m in moves) {
+    print('  ${m['from']} -> ${m['to']} (flags: ${m['flags']})');
   }
-  
-  print('Fens length: ${tempFens.length}');
-  print(tempFens.reversed.toList());
 }
