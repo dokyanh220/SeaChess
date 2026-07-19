@@ -1,6 +1,10 @@
 import 'package:client/core/services/local_storage_service.dart';
 import 'package:client/presentation/screens/auth/login_screen.dart';
 import 'package:client/presentation/providers/theme_provider.dart';
+import 'package:client/presentation/providers/auth_providers.dart';
+import 'package:client/presentation/providers/match_history_provider.dart';
+import 'package:client/presentation/providers/game_providers.dart';
+import 'package:client/presentation/providers/notification_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -476,7 +480,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
             onPressed: () async {
+              // Ngắt kết nối SignalR trước
+              await ref.read(signalRServiceProvider).disconnect();
+
+              // Xóa token lưu trữ
               await LocalStorageService().removeToken();
+
+              // Reset cache các provider dữ liệu người dùng
+              ref.invalidate(userProfileProvider);
+              ref.invalidate(matchHistoryProvider);
+              ref.invalidate(notificationStateProvider);
+              ref.invalidate(matchStateProvider);
+
               if (!context.mounted) return;
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const LoginScreen()),

@@ -22,12 +22,24 @@ namespace SeaChess.Infrastructure.Services
 
         public StockfishService(IConfiguration config)
         {
-            _enginePath = config["Stockfish:Path"] ?? "stockfish";
+            var path = config["Stockfish:Path"];
             
-            // Auto-detect OS and use the appropriate binary if the configured one is a Windows executable
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
             {
-                _enginePath = "stockfish-ubuntu-x86-64-avx2";
+                // Nếu được cấu hình (như "stockfish" trong docker-compose.yml), dùng giá trị cấu hình.
+                // Nếu không cấu hình hoặc đường dẫn chỉ tới file .exe, dùng "stockfish" mặc định của Linux.
+                if (!string.IsNullOrEmpty(path) && !path.EndsWith(".exe"))
+                {
+                    _enginePath = path;
+                }
+                else
+                {
+                    _enginePath = "stockfish";
+                }
+            }
+            else
+            {
+                _enginePath = path ?? "stockfish";
             }
         }
 

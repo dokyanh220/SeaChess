@@ -74,6 +74,17 @@ namespace SeaChess.Domain.Entities
             if (Squares.TryGetValue(from, out var piece))
             {
                 Squares.Remove(from);
+                
+                // Nếu có quân xe bị bắt ở vị trí xuất phát, loại bỏ quyền nhập thành tương ứng
+                if (Squares.TryGetValue(to, out var capturedPiece) && capturedPiece.Type == PieceType.Rook)
+                {
+                    if (to.Rank == 0 && to.File == 7) CastlingRights = CastlingRights.Replace("K", "");
+                    else if (to.Rank == 0 && to.File == 0) CastlingRights = CastlingRights.Replace("Q", "");
+                    else if (to.Rank == 7 && to.File == 7) CastlingRights = CastlingRights.Replace("k", "");
+                    else if (to.Rank == 7 && to.File == 0) CastlingRights = CastlingRights.Replace("q", "");
+                    if (string.IsNullOrEmpty(CastlingRights)) CastlingRights = "-";
+                }
+
                 // Kiểm tra xem đây có thực sự là nước đi phong cấp hợp lệ không
                 bool isPawnPromotion = piece.Type == PieceType.Pawn && (to.Rank == 7 || to.Rank == 0);
                 if (isPawnPromotion && !string.IsNullOrWhiteSpace(promotion))

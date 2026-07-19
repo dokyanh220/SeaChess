@@ -76,5 +76,26 @@ namespace SeaChess.Tests
 
             Assert.NotNull(castlingMove);
         }
+
+        [Fact]
+        public void RookCapture_ShouldRemoveCastlingRights()
+        {
+            // Arrange
+            // White Kingside Rook is at h1 (7, 0).
+            // A Black Bishop is at g2 (6, 1) and will capture the Rook at h1.
+            string fen = "rnbqkbnr/pppppp1p/6p1/8/8/8/PPPPPPbP/RNBQKBNR b KQkq - 0 1";
+            var board = new Board(fen);
+
+            // Act
+            // Black Bishop moves from g2 (6, 1) to h1 (7, 0) capturing the Rook
+            var bishopFrom = new Position(6, 1);
+            var rookTo = new Position(7, 0);
+            board.MakeMove(bishopFrom, rookTo, null);
+
+            // Assert
+            // White should lose the Kingside castling right 'K' (should only have Qkq left)
+            Assert.DoesNotContain("K", board.CastlingRights);
+            Assert.Contains("Q", board.CastlingRights);
+        }
     }
 }

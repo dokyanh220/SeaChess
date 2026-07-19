@@ -41,7 +41,13 @@ class PlayerProfileCard extends StatelessWidget {
                 backgroundColor: AppTheme.secondaryBlue.withOpacity(0.3),
                 backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
                 child: avatarUrl.isEmpty
-                    ? const Icon(Icons.person, size: 32, color: AppTheme.primaryBlue)
+                    ? Padding(
+                        padding: const EdgeInsets.all(6.0),
+                        child: Image.asset(
+                          RankHelper.getRankLargeAssetPath(rank),
+                          fit: BoxFit.contain,
+                        ),
+                      )
                     : null,
               ),
             ),
@@ -70,7 +76,7 @@ class PlayerProfileCard extends StatelessWidget {
                         child: Row(
                           children: [
                             Image.asset(
-                              RankHelper.getRankAssetPath(rank),
+                              RankHelper.getRankLargeAssetPath(rank),
                               width: 16,
                               height: 16,
                               errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),

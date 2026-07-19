@@ -165,4 +165,20 @@ class SignalrService {
       args: [difficulty, colorPreference, timeMinutes],
     );
   }
+
+  /// Ngắt kết nối SignalR khi đăng xuất
+  Future<void> disconnect() async {
+    if (_hubConnection != null) {
+      await _hubConnection!.stop();
+      _hubConnection = null;
+    }
+    if (_notificationConnection != null) {
+      await _notificationConnection!.stop();
+      _notificationConnection = null;
+    }
+    // Clear pending handlers
+    _pendingHandlers.clear();
+    _pendingNotificationHandlers.clear();
+  }
 }
+
