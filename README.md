@@ -67,9 +67,3 @@ SeaChess là một ứng dụng cờ vua trực tuyến thời gian thực hiệ
    ```bash
    flutter run
    ```
-
-## 📸 Hình ảnh thực tế
-*(Sắp ra mắt)*
-
-## 📄 Giấy phép
-Dự án này được cấp phép theo Giấy phép MIT.
