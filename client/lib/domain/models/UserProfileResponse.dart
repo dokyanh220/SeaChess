@@ -13,6 +13,8 @@ class UserProfile {
   final int draws;
   final double winRate;
   final String friendshipStatus;
+  final String? avatarUrl;
+  final bool isOnline;
 
   UserProfile({
     required this.id,
@@ -29,6 +31,8 @@ class UserProfile {
     required this.draws,
     required this.winRate,
     this.friendshipStatus = 'None',
+    this.avatarUrl,
+    this.isOnline = false,
   });
 
   /// EXP tích lũy cần để đạt level hiện tại
@@ -43,6 +47,8 @@ class UserProfile {
 
   UserProfile copyWith({
     String? friendshipStatus,
+    String? avatarUrl,
+    bool? isOnline,
   }) {
     return UserProfile(
       id: id,
@@ -59,6 +65,8 @@ class UserProfile {
       draws: draws,
       winRate: winRate,
       friendshipStatus: friendshipStatus ?? this.friendshipStatus,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      isOnline: isOnline ?? this.isOnline,
     );
   }
 
@@ -91,6 +99,8 @@ class UserProfile {
       draws: json['draws'] ?? json['draw'] ?? 0,
       winRate: (json['winRate'] ?? 0).toDouble(),
       friendshipStatus: json['friendshipStatus'] ?? 'None',
+      avatarUrl: json['avatarUrl'],
+      isOnline: json['isOnline'] ?? false,
     );
   }
 }

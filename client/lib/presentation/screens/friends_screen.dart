@@ -4,6 +4,7 @@ import 'package:client/presentation/providers/user_providers.dart';
 import 'package:client/presentation/providers/friendship_providers.dart';
 import 'package:client/presentation/providers/notification_providers.dart';
 import 'package:client/domain/models/UserProfileResponse.dart';
+import 'package:client/presentation/widgets/chat_bottom_sheet.dart';
 
 class FriendsScreen extends ConsumerStatefulWidget {
   const FriendsScreen({super.key});
@@ -301,6 +302,9 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     UserProfile friend,
     ColorScheme colorScheme,
   ) {
+    // Giả lập trạng thái online (Vì backend chưa hỗ trợ trả về trạng thái)
+    final isOnline = friend.isOnline;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -310,44 +314,117 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: colorScheme.primaryContainer,
-            child: Icon(Icons.person, color: colorScheme.primary),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
               children: [
-                Text(
-                  friend.displayName,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: colorScheme.primaryContainer,
+                  backgroundImage: friend.avatarUrl != null 
+                      ? AssetImage('assets/pieces/${friend.avatarUrl}')
+                      : null,
+                  child: friend.avatarUrl == null 
+                      ? Icon(Icons.person, color: colorScheme.primary)
+                      : null,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Cấp độ ${friend.level}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
+                if (isOnline)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: colorScheme.surface, width: 2),
+                      ),
+                    ),
+                  )
               ],
             ),
-          ),
-          IconButton(
-            icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant),
-            onPressed: () {
-              _showFriendOptionsBottomSheet(friend, colorScheme);
-            },
-          ),
-        ],
-      ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    friend.displayName,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        'Cấp độ ${friend.level}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isOnline ? Colors.green.withOpacity(0.1) : colorScheme.onSurfaceVariant.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          isOnline ? 'Online' : 'Offline',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isOnline ? Colors.green : colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            InkWell(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: ChatBottomSheet(friend: friend),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.chat_bubble_rounded, 
+                  color: colorScheme.primary, 
+                  size: 18,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: Icon(Icons.more_vert, color: colorScheme.onSurfaceVariant),
+              onPressed: () {
+                _showFriendOptionsBottomSheet(friend, colorScheme);
+              },
+            ),
+          ],
+        ),
     );
   }
 

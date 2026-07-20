@@ -1,5 +1,6 @@
 import 'package:client/core/services/local_storage_service.dart';
 import 'package:client/presentation/screens/auth/login_screen.dart';
+import 'package:client/presentation/screens/edit_profile_screen.dart';
 import 'package:client/presentation/providers/theme_provider.dart';
 import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:client/presentation/providers/match_history_provider.dart';
@@ -53,6 +54,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+
+            // ========== ACCOUNT SECTION ==========
+            SliverToBoxAdapter(
+              child: _buildSectionHeader('Tài khoản', Icons.person_rounded, colorScheme),
+            ),
+            SliverToBoxAdapter(
+              child: _buildSettingsCard(colorScheme, [
+                _buildNavigationTile(
+                  icon: Icons.edit_rounded,
+                  title: 'Chỉnh sửa hồ sơ',
+                  subtitle: 'Đổi tên hiển thị, ảnh đại diện',
+                  colorScheme: colorScheme,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                    );
+                  },
+                ),
+                _buildDivider(colorScheme),
+                _buildConnectTile(
+                  icon: Icons.facebook_rounded,
+                  title: 'Kết nối với Facebook',
+                  iconColor: const Color(0xFF1877F2),
+                  colorScheme: colorScheme,
+                ),
+                _buildDivider(colorScheme),
+                _buildConnectTile(
+                  icon: Icons.g_mobiledata_rounded,
+                  title: 'Kết nối với Google',
+                  iconColor: const Color(0xFFEA4335),
+                  colorScheme: colorScheme,
+                ),
+              ]),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
             // ========== GAME SECTION ==========
             SliverToBoxAdapter(
@@ -155,28 +192,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-            // ========== ACCOUNT SECTION ==========
-            SliverToBoxAdapter(
-              child: _buildSectionHeader('Tài khoản', Icons.person_rounded, colorScheme),
-            ),
-            SliverToBoxAdapter(
-              child: _buildSettingsCard(colorScheme, [
-                _buildConnectTile(
-                  icon: Icons.facebook_rounded,
-                  title: 'Kết nối với Facebook',
-                  iconColor: const Color(0xFF1877F2),
-                  colorScheme: colorScheme,
-                ),
-                _buildDivider(colorScheme),
-                _buildConnectTile(
-                  icon: Icons.g_mobiledata_rounded,
-                  title: 'Kết nối với Google',
-                  iconColor: const Color(0xFFEA4335),
-                  colorScheme: colorScheme,
-                ),
-              ]),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 12)),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -330,14 +345,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required String title,
     required String subtitle,
     required ColorScheme colorScheme,
+    VoidCallback? onTap,
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () {
+      onTap: onTap ?? () {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Tính năng đang phát triển'),
-            duration: const Duration(seconds: 1),
+          const SnackBar(
+            content: Text('Tính năng đang phát triển'),
+            duration: Duration(seconds: 1),
           ),
         );
       },
