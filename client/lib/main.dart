@@ -53,12 +53,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     final matchId = await storage.getActiveMatch();
 
     if (token == null || token.isEmpty) {
-      // Auto login as guest
-      final success = await ref.read(authNotifierProvider.notifier).guestLogin();
-      if (!success) {
-        // Fallback: If network fails or something, we still show some UI.
-        // But for now, we'll just let it stay on main screen or show error.
-      }
+      // Do nothing, let user go to LobbyScreen as anonymous
     }
 
     if (mounted) {

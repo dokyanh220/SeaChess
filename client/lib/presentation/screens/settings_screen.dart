@@ -31,6 +31,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final profileAsync = ref.watch(userProfileProvider);
+    final isGuest = profileAsync.asData?.value?.isGuest ?? false;
 
     return Scaffold(
       body: SafeArea(
@@ -39,7 +41,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             // ========== TOP BAR ==========
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     const SizedBox(width: 12),
@@ -58,16 +63,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             // ========== ACCOUNT SECTION ==========
             SliverToBoxAdapter(
-              child: _buildSectionHeader('Tài khoản', Icons.person_rounded, colorScheme),
+              child: _buildSectionHeader(
+                'Tài khoản',
+                Icons.person_rounded,
+                colorScheme,
+              ),
             ),
-            SliverToBoxAdapter(
-              child: _buildAccountSection(colorScheme),
-            ),
+            SliverToBoxAdapter(child: _buildAccountSection(colorScheme)),
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
             // ========== GAME SECTION ==========
             SliverToBoxAdapter(
-              child: _buildSectionHeader('Game', Icons.sports_esports_rounded, colorScheme),
+              child: _buildSectionHeader(
+                'Game',
+                Icons.sports_esports_rounded,
+                colorScheme,
+              ),
             ),
             SliverToBoxAdapter(
               child: _buildSettingsCard(colorScheme, [
@@ -104,7 +115,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             // ========== GENERAL SECTION ==========
             SliverToBoxAdapter(
-              child: _buildSectionHeader('Chung', Icons.tune_rounded, colorScheme),
+              child: _buildSectionHeader(
+                'Chung',
+                Icons.tune_rounded,
+                colorScheme,
+              ),
             ),
             SliverToBoxAdapter(
               child: _buildSettingsCard(colorScheme, [
@@ -139,9 +154,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   icon: Icons.dark_mode_rounded,
                   title: 'Chế độ Tối',
                   subtitle: 'Giao diện tối (Dark Mode)',
-                  value: ref.watch(themeModeProvider) == ThemeMode.dark ||
+                  value:
+                      ref.watch(themeModeProvider) == ThemeMode.dark ||
                       (ref.watch(themeModeProvider) == ThemeMode.system &&
-                          MediaQuery.of(context).platformBrightness == Brightness.dark),
+                          MediaQuery.of(context).platformBrightness ==
+                              Brightness.dark),
                   onChanged: (v) {
                     ref.read(themeModeProvider.notifier).toggleTheme(context);
                   },
@@ -166,30 +183,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: SizedBox(
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    onPressed: () => _showLogoutConfirm(context, colorScheme),
-                    icon: Icon(Icons.logout_rounded, color: colorScheme.error, size: 20),
-                    label: Text(
-                      'Đăng xuất',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+            if (!isGuest)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: colorScheme.error.withValues(alpha: 0.5),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () {
+                        _showLogoutConfirm(
+                          context,
+                          colorScheme,
+                          isGuest: isGuest,
+                        );
+                      },
+                      icon: Icon(
+                        Icons.logout_rounded,
                         color: colorScheme.error,
+                        size: 20,
+                      ),
+                      label: Text(
+                        'Đăng xuất',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.error,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
@@ -198,10 +230,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Center(
                 child: Text(
                   'SeaChess v1.0.0',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colorScheme.outline,
-                  ),
+                  style: TextStyle(fontSize: 12, color: colorScheme.outline),
                 ),
               ),
             ),
@@ -228,9 +257,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           colorScheme: colorScheme,
           iconColor: Colors.blue,
           onTap: () {
-             // Show upgrade modal or navigate to a special register screen
-             // Will implement UpgradeModal soon
-             _showUpgradeModal(context, colorScheme);
+            // Show upgrade modal or navigate to a special register screen
+            // Will implement UpgradeModal soon
+            _showUpgradeModal(context, colorScheme);
           },
         ),
         _buildDivider(colorScheme),
@@ -239,9 +268,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: 'Đăng nhập',
           subtitle: 'Sử dụng tài khoản đã có (sẽ mất dữ liệu Khách)',
           colorScheme: colorScheme,
-          iconColor: Colors.green,
           onTap: () {
-            _showLogoutConfirm(context, colorScheme, isLogin: true);
+            _showLoginModal(context, colorScheme);
           },
         ),
       ]);
@@ -281,7 +309,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ]);
   }
 
-  Widget _buildSectionHeader(String title, IconData icon, ColorScheme colorScheme) {
+  Widget _buildSectionHeader(
+    String title,
+    IconData icon,
+    ColorScheme colorScheme,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
@@ -390,14 +422,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: onTap ?? () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tính năng đang phát triển'),
-            duration: Duration(seconds: 1),
-          ),
-        );
-      },
+      onTap:
+          onTap ??
+          () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Tính năng đang phát triển'),
+                duration: Duration(seconds: 1),
+              ),
+            );
+          },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -405,10 +439,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (iconColor ?? colorScheme.onSurface).withValues(alpha: 0.15),
+                color: (iconColor ?? colorScheme.onSurface).withValues(
+                  alpha: 0.15,
+                ),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 20, color: iconColor ?? colorScheme.onSurface),
+              child: Icon(
+                icon,
+                size: 20,
+                color: iconColor ?? colorScheme.onSurface,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -507,7 +547,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           color: isVerified ? Colors.green : Colors.orange,
-                          fontWeight: isVerified ? FontWeight.w500 : FontWeight.normal,
+                          fontWeight: isVerified
+                              ? FontWeight.w500
+                              : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -515,7 +557,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 if (!isVerified)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.orange.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
@@ -594,10 +639,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
               child: Text(
                 'Liên kết',
                 style: TextStyle(
@@ -613,19 +654,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showLogoutConfirm(BuildContext context, ColorScheme colorScheme, {bool isLogin = false}) {
+  void _showLogoutConfirm(
+    BuildContext context,
+    ColorScheme colorScheme, {
+    required bool isGuest,
+  }) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colorScheme.surfaceContainerHigh,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          isLogin ? 'Đăng nhập' : 'Đăng xuất',
-          style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w700),
+          'Đăng xuất',
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         content: Text(
-          isLogin
-              ? 'Tài khoản Khách hiện tại và lịch sử đấu sẽ bị xóa. Bạn có chắc muốn tiếp tục để Đăng nhập tài khoản khác?'
+          isGuest
+              ? 'Bạn có chắc chắn muốn đăng xuất? Tài khoản Khách hiện tại và lịch sử đấu sẽ bị mất vĩnh viễn.'
               : 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?',
           style: TextStyle(color: colorScheme.onSurfaceVariant),
         ),
@@ -635,7 +683,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Text('Hủy', style: TextStyle(color: colorScheme.outline)),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: isLogin ? Colors.blue : colorScheme.error),
+            style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
             onPressed: () async {
               // Ngắt kết nối SignalR trước
               await ref.read(signalRServiceProvider).disconnect();
@@ -655,7 +703,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 (route) => false,
               );
             },
-            child: Text(isLogin ? 'Tiếp tục' : 'Đăng xuất', style: const TextStyle(color: Colors.white)),
+            child: const Text(
+              'Đăng xuất',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -677,9 +728,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Consumer(
           builder: (ctx, ref, _) {
             final isLoading = ref.watch(authNotifierProvider);
@@ -727,7 +776,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             borderRadius: BorderRadius.all(Radius.circular(12)),
                           ),
                         ),
-                        validator: (v) => v!.isEmpty ? 'Không được để trống' : null,
+                        validator: (v) =>
+                            v!.isEmpty ? 'Không được để trống' : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -739,7 +789,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             borderRadius: BorderRadius.all(Radius.circular(12)),
                           ),
                         ),
-                        validator: (v) => v!.isEmpty ? 'Không được để trống' : null,
+                        validator: (v) =>
+                            v!.isEmpty ? 'Không được để trống' : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -751,7 +802,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             borderRadius: BorderRadius.all(Radius.circular(12)),
                           ),
                         ),
-                        validator: (v) => v!.isEmpty ? 'Không được để trống' : null,
+                        validator: (v) =>
+                            v!.isEmpty ? 'Không được để trống' : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -764,7 +816,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             borderRadius: BorderRadius.all(Radius.circular(12)),
                           ),
                         ),
-                        validator: (v) => v!.length < 6 ? 'Ít nhất 6 ký tự' : null,
+                        validator: (v) =>
+                            v!.length < 6 ? 'Ít nhất 6 ký tự' : null,
                       ),
                       const SizedBox(height: 24),
                       FilledButton(
@@ -792,7 +845,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   Navigator.pop(ctx);
                                   ScaffoldMessenger.of(ctx).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Nâng cấp tài khoản thành công!'),
+                                      content: Text(
+                                        'Nâng cấp tài khoản thành công!',
+                                      ),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
@@ -800,7 +855,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 } else if (ctx.mounted) {
                                   ScaffoldMessenger.of(ctx).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Nâng cấp thất bại, email hoặc tên đăng nhập có thể đã tồn tại.'),
+                                      content: Text(
+                                        'Nâng cấp thất bại, email hoặc tên đăng nhập có thể đã tồn tại.',
+                                      ),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -810,11 +867,166 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
                               )
-                            : const Text('Đăng ký', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                            : const Text(
+                                'Đăng ký',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
                       const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showLoginModal(BuildContext context, ColorScheme colorScheme) {
+    final usernameController = TextEditingController();
+    final passwordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Consumer(
+          builder: (ctx, ref, _) {
+            final isLoading = ref.watch(authNotifierProvider);
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Đăng nhập',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.pop(ctx),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Đăng nhập để sử dụng tài khoản đã nâng cấp. Dữ liệu Khách hiện tại sẽ bị ghi đè.',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        controller: usernameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Tên đăng nhập',
+                          prefixIcon: Icon(Icons.person_outline_rounded),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                        validator: (v) =>
+                            v!.isEmpty ? 'Không được để trống' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Mật khẩu',
+                          prefixIcon: Icon(Icons.lock_outline_rounded),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                        validator: (v) =>
+                            v!.length < 6 ? 'Ít nhất 6 ký tự' : null,
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                if (!formKey.currentState!.validate()) return;
+
+                                final success = await ref
+                                    .read(authNotifierProvider.notifier)
+                                    .login(
+                                      usernameController.text.trim(),
+                                      passwordController.text.trim(),
+                                    );
+
+                                if (success && ctx.mounted) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Đăng nhập thành công!'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                  ref.invalidate(userProfileProvider);
+                                } else if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Sai tài khoản hoặc mật khẩu!',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Đăng nhập',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
                     ],
                   ),
                 ),

@@ -9,6 +9,11 @@ final matchHistoryRepositoryProvider = Provider<MatchHistoryRepository>((ref) {
 });
 
 final matchHistoryProvider = FutureProvider.autoDispose<List<MatchHistoryModel>>((ref) async {
+  final profile = await ref.watch(userProfileProvider.future);
+  if (profile == null) {
+    return [];
+  }
+  
   final repository = ref.watch(matchHistoryRepositoryProvider);
   return repository.getMatchHistory(limit: 20);
 });

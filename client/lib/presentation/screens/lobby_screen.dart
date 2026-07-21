@@ -111,6 +111,36 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
+  Future<bool> _ensureSession() async {
+    final profile = ref.read(userProfileProvider).value;
+    if (profile != null) return true;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final success = await ref.read(authNotifierProvider.notifier).guestLogin();
+    
+    if (mounted) {
+      Navigator.pop(context); // Remove loading
+    }
+
+    if (success) {
+      ref.invalidate(userProfileProvider);
+      return true;
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lỗi: Không thể kết nối. Vui lòng thử lại.')),
+      );
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileProvider);
@@ -129,38 +159,52 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, stack) => Center(child: Text('Lỗi tải profile: $err')),
           data: (profile) {
-            if (profile == null) {
-              return const Center(child: Text('Không tìm thấy thông tin'));
-            }
             return SingleChildScrollView(
               padding: const EdgeInsets.all(AppTheme.spacingMd),
               child: Column(
                 children: [
                   // Profile Section
-                  if (profile.isGuest)
-                    GuestProfileCard(userId: profile.userId)
-                  else ...[
-                    PlayerProfileCard(
-                      username: profile.displayName,
-                      elo: profile.elo,
-                      level: profile.level,
-                      exp: profile.currentLevelExp,
-                      maxExp: profile.expForNextLevel,
-                      rank: profile.rank,
-                      avatarUrl: profile.avatarUrl ?? '',
+                  if (profile != null) ...[
+                    if (profile.isGuest)
+                      GuestProfileCard(userId: profile.userId)
+                    else ...[
+                      PlayerProfileCard(
+                        username: profile.displayName,
+                        elo: profile.elo,
+                        level: profile.level,
+                        exp: profile.currentLevelExp,
+                        maxExp: profile.expForNextLevel,
+                        rank: profile.rank,
+                        avatarUrl: profile.avatarUrl ?? '',
+                      ),
+                      const SizedBox(height: AppTheme.spacingMd),
+                      // Stats Section
+                      StatisticCard(
+                        totalMatches: profile.totalMatches,
+                        wins: profile.wins,
+                        losses: profile.loses,
+                        draws: profile.draws,
+                        winRate: profile.winRate,
+                      ),
+                    ],
+                    const SizedBox(height: AppTheme.spacingLg),
+                  ] else ...[
+                    // Anonymous state - just a placeholder space
+                    const SizedBox(height: 20),
+                    Icon(
+                      Icons.person_outline_rounded,
+                      size: 64,
+                      color: AppTheme.primaryBlue.withOpacity(0.5),
                     ),
-                    const SizedBox(height: AppTheme.spacingMd),
-
-                    // Stats Section
-                    StatisticCard(
-                      totalMatches: profile.totalMatches,
-                      wins: profile.wins,
-                      losses: profile.loses,
-                      draws: profile.draws,
-                      winRate: profile.winRate,
+                    const SizedBox(height: 12),
+                    Text(
+                      'Chào mừng đến với SeaChess',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
+                    const SizedBox(height: AppTheme.spacingLg),
                   ],
-                  const SizedBox(height: AppTheme.spacingLg),
 
                   // Matchmaking Section
                   if (_isSearching)
@@ -173,6 +217,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                           onPressed: _isConnecting
                               ? () {}
                               : () async {
+                                  final hasSession = await _ensureSession();
+                                  if (!hasSession) return;
+                                  
                                   setState(() => _isSearching = true);
                                   _startSearchTimer();
                                   final signalR = ref.read(signalRServiceProvider);
@@ -186,7 +233,11 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                           isSecondary: true,
                           onPressed: _isConnecting
                               ? () {}
-                              : () {
+                              : () async {
+                                  final hasSession = await _ensureSession();
+                                  if (!hasSession) return;
+
+                                  if (!mounted) return;
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (_) => const AiSetupScreen()),
