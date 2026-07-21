@@ -45,6 +45,38 @@ namespace SeaChess.API.Controllers
             }
         }
 
+        [HttpPost("guest-login")]
+        public async Task<IActionResult> GuestLogin()
+        {
+            try
+            {
+                var response = await _service.GuestLoginAsync();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpPost("upgrade-guest")]
+        public async Task<IActionResult> UpgradeGuest([FromBody] RegisterRequest req)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null) return Unauthorized();
+
+            try
+            {
+                var response = await _service.UpgradeGuestAsync(Guid.Parse(userIdClaim), req);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [Authorize]
         [HttpDelete("logout")]
         public IActionResult Logout()

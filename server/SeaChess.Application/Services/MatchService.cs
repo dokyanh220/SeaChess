@@ -22,6 +22,12 @@ namespace SeaChess.Application.Services
 
         public async Task<List<MatchHistoryDto>> GetMatchHistoryAsync(Guid userId, int limit)
         {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user != null && user.IsGuest)
+            {
+                limit = Math.Min(limit, 5);
+            }
+
             var matches = await _matchRepository.GetMatchHistoryByUserIdAsync(userId, limit);
             
             // Lấy danh sách ID của các đối thủ (không phải AI)
@@ -37,10 +43,10 @@ namespace SeaChess.Application.Services
             var opponents = new Dictionary<Guid, User>();
             foreach (var opId in opponentIds)
             {
-                var user = await _userRepository.GetByIdAsync(opId);
-                if (user != null)
+                var opponentUser = await _userRepository.GetByIdAsync(opId);
+                if (opponentUser != null)
                 {
-                    opponents[opId] = user;
+                    opponents[opId] = opponentUser;
                 }
             }
             
@@ -123,13 +129,21 @@ namespace SeaChess.Application.Services
                     break;
             }
 
-            user.Elo = Math.Max(0, user.Elo + eloChange);
-            user.Experience += xpChange;
-            user.TotalMatches++;
+            if (user.IsGuest)
+            {
+                eloChange = 0;
+                xpChange = 0;
+            }
+            else
+            {
+                user.Elo = Math.Max(0, user.Elo + eloChange);
+                user.Experience += xpChange;
+                user.TotalMatches++;
 
-            if (isWin) user.Wins++;
-            else if (isLoss) user.Loses++;
-            else user.Draw++;
+                if (isWin) user.Wins++;
+                else if (isLoss) user.Loses++;
+                else user.Draw++;
+            }
 
             // Tính Level hiện tại để trả về
             int CalculateLevel(int exp)

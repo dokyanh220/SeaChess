@@ -99,6 +99,93 @@ namespace SeaChess.Application.Services
             };
         }
 
+        // ── Guest Mode ─────────────────────────────────────────────
+
+        public async Task<AuthResponse> GuestLoginAsync()
+        {
+            var random = new Random();
+            string playerId;
+            bool exists;
+            do
+            {
+                playerId = random.Next(10000000, 99999999).ToString();
+                exists = await _context.ExistsByPlayerIdAsync(playerId);
+            } while (exists);
+
+            var guestId = Guid.NewGuid();
+            var user = new User
+            {
+                Id = guestId,
+                PlayerId = playerId,
+                Username = "guest_" + guestId.ToString("N")[..12],
+                DisplayName = "Khách " + playerId,
+                Email = string.Empty,
+                PasswordHash = string.Empty,
+                Experience = 0,
+                Elo = 0,
+                TotalMatches = 0,
+                Wins = 0,
+                Loses = 0,
+                Draw = 0,
+                EmailVerified = false,
+                IsActive = true,
+                IsGuest = true, // Quan trọng
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.AddAsync(user);
+
+            var token = GenerateJwtToken(user);
+            return new AuthResponse
+            {
+                Token = token,
+                UserId = user.Id,
+                Username = user.Username,
+                Displayname = user.DisplayName
+            };
+        }
+
+        public async Task<AuthResponse> UpgradeGuestAsync(Guid guestId, RegisterRequest req)
+        {
+            var user = await _context.GetByIdAsync(guestId);
+            if (user == null || !user.IsGuest)
+            {
+                throw new Exception("Invalid guest account.");
+            }
+
+            if (await _context.ExistsByUsernameOrEmailAsync(req.Username, req.Email))
+            {
+                throw new Exception("Email or username already exists.");
+            }
+
+            user.Username = req.Username;
+            user.Email = req.Email;
+            user.DisplayName = req.Displayname;
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password);
+            user.IsGuest = false;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.UpdateAsync(user);
+
+            try
+            {
+                await SendVerificationEmailAsync(user.Id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Warning] Không gửi được email xác thực: {ex.Message}");
+            }
+
+            var token = GenerateJwtToken(user);
+            return new AuthResponse
+            {
+                Token = token,
+                UserId = user.Id,
+                Username = user.Username,
+                Displayname = user.DisplayName
+            };
+        }
+
         // ── Email Verification ──────────────────────────────────────
 
         /// <summary>

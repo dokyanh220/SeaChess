@@ -5,6 +5,7 @@ import 'package:client/presentation/screens/settings_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/presentation/providers/notification_providers.dart';
+import 'package:client/presentation/providers/auth_providers.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
@@ -39,6 +40,37 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final notificationState = ref.watch(notificationStateProvider);
     final pendingCount = notificationState.pendingRequestsCount;
+    
+    final profileAsync = ref.watch(userProfileProvider);
+    final isGuest = profileAsync.asData?.value?.isGuest ?? false;
+
+    // Build pages based on guest mode
+    final pages = [
+      const LobbyScreen(),
+      if (!isGuest) const FriendsScreen(),
+      const SettingsScreen(),
+    ];
+
+    // Build nav items based on guest mode
+    final navItems = [
+      const BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Trang chủ'),
+      if (!isGuest)
+        BottomNavigationBarItem(
+          icon: Badge(
+            isLabelVisible: pendingCount > 0,
+            label: Text(pendingCount.toString()),
+            backgroundColor: Colors.redAccent,
+            child: const Icon(Icons.people_alt_rounded),
+          ),
+          label: 'Bạn bè',
+        ),
+      const BottomNavigationBarItem(icon: Icon(Icons.settings_rounded), label: 'Cài đặt'),
+    ];
+
+    // Ensure _currentIndex is valid when switching from non-guest to guest
+    if (_currentIndex >= pages.length) {
+      _currentIndex = pages.length - 1;
+    }
 
     return Scaffold(
       body: PageView(
@@ -49,11 +81,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             _currentIndex = index;
           });
         },
-        children: const [
-          LobbyScreen(),
-          FriendsScreen(),
-          SettingsScreen(),
-        ],
+        children: pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: colorScheme.surfaceContainerLowest,
@@ -62,19 +90,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
         onTap: _onTabTapped,
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Badge(
-              isLabelVisible: pendingCount > 0,
-              label: Text(pendingCount.toString()),
-              backgroundColor: Colors.redAccent,
-              child: const Icon(Icons.people_alt_rounded),
-            ),
-            label: 'Friends',
-          ),
-          const BottomNavigationBarItem(icon: Icon(Icons.settings_rounded), label: 'Settings'),
-        ],
+        items: navItems,
       ),
     );
   }

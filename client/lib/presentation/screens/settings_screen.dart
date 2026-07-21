@@ -61,40 +61,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: _buildSectionHeader('Tài khoản', Icons.person_rounded, colorScheme),
             ),
             SliverToBoxAdapter(
-              child: _buildSettingsCard(colorScheme, [
-                _buildNavigationTile(
-                  icon: Icons.edit_rounded,
-                  title: 'Chỉnh sửa hồ sơ',
-                  subtitle: 'Đổi tên hiển thị, ảnh đại diện',
-                  colorScheme: colorScheme,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                    ).then((_) {
-                      // Refresh profile khi quay lại từ EditProfile
-                      ref.invalidate(userProfileProvider);
-                    });
-                  },
-                ),
-                _buildDivider(colorScheme),
-                // ── Nút xác thực email ──
-                _buildEmailVerificationTile(colorScheme),
-                _buildDivider(colorScheme),
-                _buildConnectTile(
-                  icon: Icons.facebook_rounded,
-                  title: 'Kết nối với Facebook',
-                  iconColor: const Color(0xFF1877F2),
-                  colorScheme: colorScheme,
-                ),
-                _buildDivider(colorScheme),
-                _buildConnectTile(
-                  icon: Icons.g_mobiledata_rounded,
-                  title: 'Kết nối với Google',
-                  iconColor: const Color(0xFFEA4335),
-                  colorScheme: colorScheme,
-                ),
-              ]),
+              child: _buildAccountSection(colorScheme),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
@@ -248,6 +215,72 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // ===== HELPER WIDGETS =====
 
+  Widget _buildAccountSection(ColorScheme colorScheme) {
+    final profileAsync = ref.watch(userProfileProvider);
+    final isGuest = profileAsync.asData?.value?.isGuest ?? false;
+
+    if (isGuest) {
+      return _buildSettingsCard(colorScheme, [
+        _buildNavigationTile(
+          icon: Icons.app_registration_rounded,
+          title: 'Đăng ký tài khoản',
+          subtitle: 'Lưu trữ thông tin và lịch sử trận đấu',
+          colorScheme: colorScheme,
+          iconColor: Colors.blue,
+          onTap: () {
+             // Show upgrade modal or navigate to a special register screen
+             // Will implement UpgradeModal soon
+             _showUpgradeModal(context, colorScheme);
+          },
+        ),
+        _buildDivider(colorScheme),
+        _buildNavigationTile(
+          icon: Icons.login_rounded,
+          title: 'Đăng nhập',
+          subtitle: 'Sử dụng tài khoản đã có (sẽ mất dữ liệu Khách)',
+          colorScheme: colorScheme,
+          iconColor: Colors.green,
+          onTap: () {
+            _showLogoutConfirm(context, colorScheme, isLogin: true);
+          },
+        ),
+      ]);
+    }
+
+    return _buildSettingsCard(colorScheme, [
+      _buildNavigationTile(
+        icon: Icons.edit_rounded,
+        title: 'Chỉnh sửa hồ sơ',
+        subtitle: 'Đổi tên hiển thị, ảnh đại diện',
+        colorScheme: colorScheme,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+          ).then((_) {
+            ref.invalidate(userProfileProvider);
+          });
+        },
+      ),
+      _buildDivider(colorScheme),
+      _buildEmailVerificationTile(colorScheme),
+      _buildDivider(colorScheme),
+      _buildConnectTile(
+        icon: Icons.facebook_rounded,
+        title: 'Kết nối với Facebook',
+        iconColor: const Color(0xFF1877F2),
+        colorScheme: colorScheme,
+      ),
+      _buildDivider(colorScheme),
+      _buildConnectTile(
+        icon: Icons.g_mobiledata_rounded,
+        title: 'Kết nối với Google',
+        iconColor: const Color(0xFFEA4335),
+        colorScheme: colorScheme,
+      ),
+    ]);
+  }
+
   Widget _buildSectionHeader(String title, IconData icon, ColorScheme colorScheme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -352,6 +385,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required String title,
     required String subtitle,
     required ColorScheme colorScheme,
+    Color? iconColor,
     VoidCallback? onTap,
   }) {
     return InkWell(
@@ -371,10 +405,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest,
+                color: (iconColor ?? colorScheme.onSurface).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 20, color: colorScheme.onSurface),
+              child: Icon(icon, size: 20, color: iconColor ?? colorScheme.onSurface),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -579,18 +613,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showLogoutConfirm(BuildContext context, ColorScheme colorScheme) {
+  void _showLogoutConfirm(BuildContext context, ColorScheme colorScheme, {bool isLogin = false}) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colorScheme.surfaceContainerHigh,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Đăng xuất',
+          isLogin ? 'Đăng nhập' : 'Đăng xuất',
           style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w700),
         ),
         content: Text(
-          'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?',
+          isLogin
+              ? 'Tài khoản Khách hiện tại và lịch sử đấu sẽ bị xóa. Bạn có chắc muốn tiếp tục để Đăng nhập tài khoản khác?'
+              : 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?',
           style: TextStyle(color: colorScheme.onSurfaceVariant),
         ),
         actions: [
@@ -599,7 +635,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Text('Hủy', style: TextStyle(color: colorScheme.outline)),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
+            style: FilledButton.styleFrom(backgroundColor: isLogin ? Colors.blue : colorScheme.error),
             onPressed: () async {
               // Ngắt kết nối SignalR trước
               await ref.read(signalRServiceProvider).disconnect();
@@ -619,9 +655,173 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 (route) => false,
               );
             },
-            child: const Text('Đăng xuất', style: TextStyle(color: Colors.white)),
+            child: Text(isLogin ? 'Tiếp tục' : 'Đăng xuất', style: const TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showUpgradeModal(BuildContext context, ColorScheme colorScheme) {
+    final usernameController = TextEditingController();
+    final emailController = TextEditingController();
+    final displaynameController = TextEditingController();
+    final passwordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: Consumer(
+          builder: (ctx, ref, _) {
+            final isLoading = ref.watch(authNotifierProvider);
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Đăng ký tài khoản',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.pop(ctx),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Nâng cấp để lưu trữ thông tin, kết bạn và chat!',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        controller: usernameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Tên đăng nhập',
+                          prefixIcon: Icon(Icons.person_outline_rounded),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                        validator: (v) => v!.isEmpty ? 'Không được để trống' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: emailController,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.email_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                        validator: (v) => v!.isEmpty ? 'Không được để trống' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: displaynameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Tên hiển thị',
+                          prefixIcon: Icon(Icons.badge_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                        validator: (v) => v!.isEmpty ? 'Không được để trống' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: passwordController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Mật khẩu',
+                          prefixIcon: Icon(Icons.lock_outline_rounded),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                        validator: (v) => v!.length < 6 ? 'Ít nhất 6 ký tự' : null,
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                if (!formKey.currentState!.validate()) return;
+
+                                final success = await ref
+                                    .read(authNotifierProvider.notifier)
+                                    .upgradeGuest(
+                                      usernameController.text.trim(),
+                                      passwordController.text.trim(),
+                                      emailController.text.trim(),
+                                      displaynameController.text.trim(),
+                                    );
+
+                                if (success && ctx.mounted) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Nâng cấp tài khoản thành công!'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                  ref.invalidate(userProfileProvider);
+                                } else if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Nâng cấp thất bại, email hoặc tên đăng nhập có thể đã tồn tại.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Text('Đăng ký', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

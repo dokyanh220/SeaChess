@@ -136,6 +136,35 @@ class _loginScreenState extends ConsumerState<LoginScreen> {
                   );
                 },
               ),
+              const SizedBox(height: AppTheme.spacingMd),
+              
+              // Nút Chơi ngay (Guest)
+              PrimaryButton(
+                text: 'Chơi ngay (Khách)',
+                isSecondary: true,
+                isLoading: isLoading,
+                onPressed: () async {
+                  final success = await ref
+                      .read(authNotifierProvider.notifier)
+                      .guestLogin();
+
+                  if (success && context.mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MainScreen(),
+                      ),
+                    );
+                  } else if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Không thể tạo tài khoản Khách'),
+                        backgroundColor: AppTheme.dangerRed,
+                      ),
+                    );
+                  }
+                },
+              ),
             ],
           ),
         ),

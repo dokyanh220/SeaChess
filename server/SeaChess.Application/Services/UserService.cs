@@ -43,7 +43,8 @@ namespace SeaChess.Application.Services
                 WinRate = winRate,
                 Level = level,
                 Rank = rank,
-                EmailVerified = user.EmailVerified
+                EmailVerified = user.EmailVerified,
+                IsGuest = user.IsGuest
             };
         }
 
@@ -119,7 +120,8 @@ namespace SeaChess.Application.Services
                     Level = CalculateLevel(user.Experience),
                     Rank = DetermineRank(user.TotalMatches, user.Elo),
                     FriendshipStatus = fStatus,
-                    EmailVerified = user.EmailVerified
+                    EmailVerified = user.EmailVerified,
+                    IsGuest = user.IsGuest
                 });
             }
             

@@ -58,6 +58,50 @@ class AuthRepository {
     }
   }
 
+  Future<bool> guestLogin() async {
+    try {
+      final response = await _apiClient.dio.post('auth/guest-login');
+      if (response.statusCode == 200) {
+        final token = response.data['token'];
+        await _localStorageService.saveToken(token);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Lỗi đăng nhập khách: $e');
+      return false;
+    }
+  }
+
+  Future<bool> upgradeGuest(
+    String username,
+    String displayName,
+    String password,
+    String email,
+  ) async {
+    try {
+      final response = await _apiClient.dio.post(
+        'auth/upgrade-guest',
+        data: {
+          'username': username,
+          'displayname': displayName,
+          'password': password,
+          'email': email,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final token = response.data['token'];
+        await _localStorageService.saveToken(token);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Lỗi nâng cấp tài khoản khách: $e');
+      return false;
+    }
+  }
+
   Future<UserProfile?> getMyProfile() async {
     try {
       // Bỏ qua browser cache bằng cách thêm timestamp (đặc biệt khi chạy Flutter Web / Chrome)

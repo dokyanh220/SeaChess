@@ -520,8 +520,8 @@ namespace SeaChess.API.Hubs
                 resultForWhite = "draw";
                 resultForBlack = "draw";
 
-                whiteUser.Draw++;
-                blackUser.Draw++;
+                if (!whiteUser.IsGuest) whiteUser.Draw++;
+                if (!blackUser.IsGuest) blackUser.Draw++;
             }
             else if (winnerId == matchState.WhitePlayerId)
             {
@@ -535,8 +535,8 @@ namespace SeaChess.API.Hubs
                     whiteUser.Elo, blackUser.Elo
                 );
 
-                whiteUser.Wins++;
-                blackUser.Loses++;
+                if (!whiteUser.IsGuest) whiteUser.Wins++;
+                if (!blackUser.IsGuest) blackUser.Loses++;
             }
             else
             {
@@ -550,16 +550,31 @@ namespace SeaChess.API.Hubs
                     whiteUser.Elo, blackUser.Elo
                 );
 
-                blackUser.Wins++;
-                whiteUser.Loses++;
+                if (!blackUser.IsGuest) blackUser.Wins++;
+                if (!whiteUser.IsGuest) whiteUser.Loses++;
             }
 
-            whiteUser.Elo = Math.Max(0, whiteUser.Elo + whiteEloChange);
-            blackUser.Elo = Math.Max(0, blackUser.Elo + blackEloChange);
-            whiteUser.TotalMatches++;
-            blackUser.TotalMatches++;
-            whiteUser.Experience += 77;
-            blackUser.Experience += 77;
+            if (!whiteUser.IsGuest)
+            {
+                whiteUser.Elo = Math.Max(0, whiteUser.Elo + whiteEloChange);
+                whiteUser.TotalMatches++;
+                whiteUser.Experience += 77;
+            }
+            else
+            {
+                whiteEloChange = 0; // Guest don't gain elo
+            }
+
+            if (!blackUser.IsGuest)
+            {
+                blackUser.Elo = Math.Max(0, blackUser.Elo + blackEloChange);
+                blackUser.TotalMatches++;
+                blackUser.Experience += 77;
+            }
+            else
+            {
+                blackEloChange = 0; // Guest don't gain elo
+            }
 
             await _userRepo.UpdateAsync(whiteUser);
             await _userRepo.UpdateAsync(blackUser);

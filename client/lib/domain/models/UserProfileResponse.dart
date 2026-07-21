@@ -16,6 +16,7 @@ class UserProfile {
   final String? avatarUrl;
   final bool isOnline;
   final bool emailVerified;
+  final bool isGuest;
 
   UserProfile({
     required this.id,
@@ -35,6 +36,7 @@ class UserProfile {
     this.avatarUrl,
     this.isOnline = false,
     this.emailVerified = false,
+    this.isGuest = false,
   });
 
   /// EXP tích lũy cần để đạt level hiện tại
@@ -52,6 +54,7 @@ class UserProfile {
     String? avatarUrl,
     bool? isOnline,
     bool? emailVerified,
+    bool? isGuest,
   }) {
     return UserProfile(
       id: id,
@@ -71,6 +74,7 @@ class UserProfile {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isOnline: isOnline ?? this.isOnline,
       emailVerified: emailVerified ?? this.emailVerified,
+      isGuest: isGuest ?? this.isGuest,
     );
   }
 
@@ -106,6 +110,7 @@ class UserProfile {
       avatarUrl: json['avatarUrl'],
       isOnline: json['isOnline'] ?? false,
       emailVerified: json['emailVerified'] ?? false,
+      isGuest: json['isGuest'] ?? false,
     );
   }
 }

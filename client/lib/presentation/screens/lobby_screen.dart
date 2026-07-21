@@ -11,6 +11,7 @@ import 'package:client/presentation/screens/match_history_screen.dart';
 import 'package:client/core/theme/app_theme.dart';
 import 'package:client/presentation/widgets/primary_button.dart';
 import 'package:client/presentation/widgets/player_profile_card.dart';
+import 'package:client/presentation/widgets/guest_profile_card.dart';
 import 'package:client/presentation/widgets/statistic_card.dart';
 
 class LobbyScreen extends ConsumerStatefulWidget {
@@ -136,25 +137,29 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
               child: Column(
                 children: [
                   // Profile Section
-                  PlayerProfileCard(
-                    username: profile.displayName,
-                    elo: profile.elo,
-                    level: profile.level,
-                    exp: profile.currentLevelExp,
-                    maxExp: profile.expForNextLevel,
-                    rank: profile.rank,
-                    avatarUrl: profile.avatarUrl ?? '',
-                  ),
-                  const SizedBox(height: AppTheme.spacingMd),
+                  if (profile.isGuest)
+                    GuestProfileCard(userId: profile.userId)
+                  else ...[
+                    PlayerProfileCard(
+                      username: profile.displayName,
+                      elo: profile.elo,
+                      level: profile.level,
+                      exp: profile.currentLevelExp,
+                      maxExp: profile.expForNextLevel,
+                      rank: profile.rank,
+                      avatarUrl: profile.avatarUrl ?? '',
+                    ),
+                    const SizedBox(height: AppTheme.spacingMd),
 
-                  // Stats Section
-                  StatisticCard(
-                    totalMatches: profile.totalMatches,
-                    wins: profile.wins,
-                    losses: profile.loses,
-                    draws: profile.draws,
-                    winRate: profile.winRate,
-                  ),
+                    // Stats Section
+                    StatisticCard(
+                      totalMatches: profile.totalMatches,
+                      wins: profile.wins,
+                      losses: profile.loses,
+                      draws: profile.draws,
+                      winRate: profile.winRate,
+                    ),
+                  ],
                   const SizedBox(height: AppTheme.spacingLg),
 
                   // Matchmaking Section

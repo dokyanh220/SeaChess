@@ -56,6 +56,30 @@ class AuthNotifier extends StateNotifier<bool> {
     state = false;
     return isSuccess;
   }
+
+  Future<bool> guestLogin() async {
+    state = true;
+    final isSuccess = await _repository.guestLogin();
+    state = false;
+    return isSuccess;
+  }
+
+  Future<bool> upgradeGuest(
+    String username,
+    String password,
+    String email,
+    String displayName,
+  ) async {
+    state = true;
+    final isSuccess = await _repository.upgradeGuest(
+      username,
+      displayName,
+      password,
+      email,
+    );
+    state = false;
+    return isSuccess;
+  }
 }
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, bool>((ref) {

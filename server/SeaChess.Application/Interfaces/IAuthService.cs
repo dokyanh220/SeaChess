@@ -8,5 +8,7 @@ namespace SeaChess.Application.Interfaces
         Task<AuthResponse> LoginAsync(LoginRequest request);
         Task<bool> SendVerificationEmailAsync(Guid userId);
         Task<bool> VerifyEmailAsync(string token);
+        Task<AuthResponse> GuestLoginAsync();
+        Task<AuthResponse> UpgradeGuestAsync(Guid guestId, RegisterRequest request);
     }
 }
