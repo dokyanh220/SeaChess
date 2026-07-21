@@ -72,4 +72,15 @@ class AuthRepository {
       return null;
     }
   }
+
+  /// Gửi lại email xác thực
+  Future<bool> resendVerificationEmail() async {
+    try {
+      final response = await _apiClient.dio.post('auth/send-verification');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Lỗi gửi email xác thực: $e');
+      return false;
+    }
+  }
 }

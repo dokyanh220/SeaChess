@@ -19,6 +19,7 @@ namespace SeaChess.Application.DTOs.User
         public double WinRate { get; set; }
         public int Level { get; set; }
         public string Rank { get; set; } = string.Empty;
+        public bool EmailVerified { get; set; }
         public string FriendshipStatus { get; set; } = "None"; // None, Pending, Accepted, Rejected
     }
 }

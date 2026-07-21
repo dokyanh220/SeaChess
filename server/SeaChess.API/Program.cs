@@ -89,6 +89,7 @@ builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
 builder.Services.AddScoped<IFriendshipService, FriendshipService>();
 builder.Services.AddScoped<IMatchRepository, MatchRepository>();
 builder.Services.AddScoped<IMatchService, MatchService>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
 var app = builder.Build();
 

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SeaChess.Application.DTOs.User;
 using SeaChess.Application.Interfaces;
 
 namespace SeaChess.API.Controllers
@@ -40,5 +41,28 @@ namespace SeaChess.API.Controllers
 
             return Ok(users);
         }
+
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest req)
+        {
+            // Lấy từ jwt (claim 'sub')
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (userIdClaim == null) return Unauthorized();
+
+            var userId = Guid.Parse(userIdClaim);
+
+            var updatedProfile = await _service.UpdateProfileAsync(
+                userId,
+                req.Displayname,
+                req.AvatarUrl
+            );
+
+            if (updatedProfile == null) return NotFound();
+
+            return Ok(updatedProfile);
+        }
+
+        // [HttpPost("verify")]
     }
 }

@@ -42,7 +42,8 @@ namespace SeaChess.Application.Services
                 CreatedAt = user.CreatedAt,
                 WinRate = winRate,
                 Level = level,
-                Rank = rank
+                Rank = rank,
+                EmailVerified = user.EmailVerified
             };
         }
 
@@ -117,11 +118,34 @@ namespace SeaChess.Application.Services
                     WinRate = user.TotalMatches == 0 ? 0 : Math.Round((double)user.Wins / user.TotalMatches * 100, 2),
                     Level = CalculateLevel(user.Experience),
                     Rank = DetermineRank(user.TotalMatches, user.Elo),
-                    FriendshipStatus = fStatus
+                    FriendshipStatus = fStatus,
+                    EmailVerified = user.EmailVerified
                 });
             }
             
             return results;
+        }
+
+        public async Task<UserProfileResponse?> UpdateProfileAsync(Guid userId, string? displayName, string? avatarUrl)
+        {
+            var user = await _context.GetByIdAsync(userId);
+            if (user == null) return null;
+
+            if (!string.IsNullOrWhiteSpace(displayName))
+            {
+                user.DisplayName = displayName.Trim();
+            }
+
+            if (avatarUrl != null)
+            {
+                user.AvatarUrl = avatarUrl;
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.UpdateAsync(user);
+
+            return await GetUserProfileAsync(userId);
         }
     }
 }

@@ -15,6 +15,7 @@ class UserProfile {
   final String friendshipStatus;
   final String? avatarUrl;
   final bool isOnline;
+  final bool emailVerified;
 
   UserProfile({
     required this.id,
@@ -33,6 +34,7 @@ class UserProfile {
     this.friendshipStatus = 'None',
     this.avatarUrl,
     this.isOnline = false,
+    this.emailVerified = false,
   });
 
   /// EXP tích lũy cần để đạt level hiện tại
@@ -49,6 +51,7 @@ class UserProfile {
     String? friendshipStatus,
     String? avatarUrl,
     bool? isOnline,
+    bool? emailVerified,
   }) {
     return UserProfile(
       id: id,
@@ -67,6 +70,7 @@ class UserProfile {
       friendshipStatus: friendshipStatus ?? this.friendshipStatus,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isOnline: isOnline ?? this.isOnline,
+      emailVerified: emailVerified ?? this.emailVerified,
     );
   }
 
@@ -101,6 +105,7 @@ class UserProfile {
       friendshipStatus: json['friendshipStatus'] ?? 'None',
       avatarUrl: json['avatarUrl'],
       isOnline: json['isOnline'] ?? false,
+      emailVerified: json['emailVerified'] ?? false,
     );
   }
 }

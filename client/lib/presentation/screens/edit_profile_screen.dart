@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/presentation/providers/auth_providers.dart';
+import 'package:client/presentation/providers/user_providers.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -12,22 +13,32 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
   String? _selectedAvatar;
-  
+  bool _isSaving = false;
+
+  // Danh sách avatar có sẵn trong assets/avatar/
+  // Khi thêm avatar mới, chỉ cần thêm file avt_03.png, avt_04.png... vào thư mục
+  // rồi thêm tên vào list này
   final List<String> _avatars = [
-    'wk.png', 'wq.png', 'wr.png', 'wb.png', 'wn.png', 'wp.png',
-    'bk.png', 'bq.png', 'br.png', 'bb.png', 'bn.png', 'bp.png'
+    'avt_01.png',
+    'avt_02.png',
   ];
 
   @override
   void initState() {
     super.initState();
-    // Initialize with current profile data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userProfile = ref.read(userProfileProvider).value;
       if (userProfile != null) {
         setState(() {
           _nameController.text = userProfile.displayName;
-          // In a real implementation, we would also set _selectedAvatar = userProfile.avatarUrl;
+          // Nếu avatarUrl hiện tại trùng với một preset → highlight nó
+          if (userProfile.avatarUrl != null) {
+            final currentAvatar = userProfile.avatarUrl!;
+            // avatarUrl từ server sẽ lưu dạng "avt_01.png"
+            if (_avatars.contains(currentAvatar)) {
+              _selectedAvatar = currentAvatar;
+            }
+          }
         });
       }
     });
@@ -39,26 +50,47 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.dispose();
   }
 
-  void _saveProfile() {
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //   const SnackBar(content: Text('Lưu thông tin thành công!')),
-    // );
-    // Navigator.pop(context);
-    
-    // Simulate an API call delay and then show success
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-    
-    Future.delayed(const Duration(milliseconds: 600), () {
-      Navigator.pop(context); // close loading
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cập nhật hồ sơ thành công! (Giao diện giả lập)')),
+  Future<void> _saveProfile() async {
+    final userRepo = ref.read(userRepositoryProvider);
+
+    setState(() => _isSaving = true);
+
+    try {
+      final result = await userRepo.updateProfile(
+        displayName: _nameController.text.trim().isNotEmpty
+            ? _nameController.text.trim()
+            : null,
+        avatarUrl: _selectedAvatar, // Gửi tên file: "avt_01.png"
       );
-      Navigator.pop(context); // close screen
-    });
+
+      if (result != null && mounted) {
+        // Refresh lại userProfileProvider để toàn bộ app cập nhật
+        ref.invalidate(userProfileProvider);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cập nhật hồ sơ thành công!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cập nhật thất bại. Vui lòng thử lại.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -78,16 +110,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Avatar hiện tại ──────────────────────────────
             Center(
               child: Stack(
                 children: [
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: colorScheme.primaryContainer,
-                    backgroundImage: _selectedAvatar != null 
-                        ? AssetImage('assets/pieces/$_selectedAvatar') 
+                    backgroundImage: _selectedAvatar != null
+                        ? AssetImage('assets/avatar/$_selectedAvatar')
                         : null,
-                    child: _selectedAvatar == null 
+                    child: _selectedAvatar == null
                         ? Icon(Icons.person, size: 50, color: colorScheme.primary)
                         : null,
                   ),
@@ -108,6 +141,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
             ),
             const SizedBox(height: 32),
+
+            // ── Tên hiển thị ─────────────────────────────────
             Text(
               'Tên hiển thị',
               style: TextStyle(
@@ -119,6 +154,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _nameController,
+              enabled: !_isSaving,
               decoration: InputDecoration(
                 filled: true,
                 fillColor: colorScheme.surfaceContainerHigh.withOpacity(0.5),
@@ -131,6 +167,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
             ),
             const SizedBox(height: 32),
+
+            // ── Chọn ảnh đại diện ───────────────────────────
             Text(
               'Chọn ảnh đại diện',
               style: TextStyle(
@@ -153,15 +191,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 final avatar = _avatars[index];
                 final isSelected = _selectedAvatar == avatar;
                 return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedAvatar = avatar;
-                    });
-                  },
+                  onTap: _isSaving
+                      ? null
+                      : () {
+                          setState(() {
+                            _selectedAvatar = avatar;
+                          });
+                        },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
-                      color: isSelected ? colorScheme.primary.withOpacity(0.2) : colorScheme.surfaceContainerHigh.withOpacity(0.3),
+                      color: isSelected
+                          ? colorScheme.primary.withOpacity(0.2)
+                          : colorScheme.surfaceContainerHigh.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isSelected ? colorScheme.primary : Colors.transparent,
@@ -170,27 +212,38 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Image.asset('assets/pieces/$avatar'),
+                      child: Image.asset('assets/avatar/$avatar'),
                     ),
                   ),
                 );
               },
             ),
             const SizedBox(height: 48),
+
+            // ── Nút Lưu ─────────────────────────────────────
             SizedBox(
               width: double.infinity,
               height: 56,
               child: FilledButton(
-                onPressed: _saveProfile,
+                onPressed: _isSaving ? null : _saveProfile,
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text(
-                  'Lưu thay đổi',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Lưu thay đổi',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
               ),
             ),
             const SizedBox(height: 24),
