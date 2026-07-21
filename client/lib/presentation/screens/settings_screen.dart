@@ -6,6 +6,7 @@ import 'package:client/presentation/providers/auth_providers.dart';
 import 'package:client/presentation/providers/match_history_provider.dart';
 import 'package:client/presentation/providers/game_providers.dart';
 import 'package:client/presentation/providers/notification_providers.dart';
+import 'package:client/presentation/widgets/email_verification_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -70,9 +71,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                    );
+                    ).then((_) {
+                      // Refresh profile khi quay lại từ EditProfile
+                      ref.invalidate(userProfileProvider);
+                    });
                   },
                 ),
+                _buildDivider(colorScheme),
+                // ── Nút xác thực email ──
+                _buildEmailVerificationTile(colorScheme),
                 _buildDivider(colorScheme),
                 _buildConnectTile(
                   icon: Icons.facebook_rounded,
@@ -401,6 +408,104 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Tile xác thực email — hiện trạng thái verified / chưa verified
+  Widget _buildEmailVerificationTile(ColorScheme colorScheme) {
+    final profileAsync = ref.watch(userProfileProvider);
+
+    return profileAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (profile) {
+        if (profile == null) return const SizedBox.shrink();
+
+        final isVerified = profile.emailVerified;
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: isVerified
+              ? null
+              : () {
+                  final authRepo = ref.read(authRepositoryProvider);
+                  EmailVerificationModal.show(
+                    context,
+                    () => authRepo.resendVerificationEmail(),
+                  );
+                },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isVerified
+                        ? Colors.green.withOpacity(0.12)
+                        : Colors.orange.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isVerified ? Icons.verified_rounded : Icons.email_outlined,
+                    size: 20,
+                    color: isVerified ? Colors.green : Colors.orange,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Xác thực email',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isVerified
+                            ? 'Email đã được xác thực ✓'
+                            : 'Nhấn để gửi email xác thực',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isVerified ? Colors.green : Colors.orange,
+                          fontWeight: isVerified ? FontWeight.w500 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!isVerified)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Xác thực',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.green,
+                    size: 22,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

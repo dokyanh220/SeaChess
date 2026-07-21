@@ -17,6 +17,7 @@ namespace SeaChess.Domain.Entities
         public int Elo { get; set; } = 0;
         public bool EmailVerified { get; set; } = false;
         public bool IsActive { get; set; } = true;
+        public bool IsGuest { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
     }

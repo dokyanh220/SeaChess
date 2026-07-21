@@ -143,6 +143,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                     exp: profile.currentLevelExp,
                     maxExp: profile.expForNextLevel,
                     rank: profile.rank,
+                    avatarUrl: profile.avatarUrl ?? '',
                   ),
                   const SizedBox(height: AppTheme.spacingMd),
 

@@ -39,7 +39,9 @@ class PlayerProfileCard extends StatelessWidget {
               child: CircleAvatar(
                 radius: 32,
                 backgroundColor: AppTheme.secondaryBlue.withOpacity(0.3),
-                backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                backgroundImage: avatarUrl.isNotEmpty
+                    ? AssetImage('assets/avatar/$avatarUrl')
+                    : null,
                 child: avatarUrl.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(6.0),
