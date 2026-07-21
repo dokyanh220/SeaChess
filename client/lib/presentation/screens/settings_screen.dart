@@ -1,5 +1,5 @@
+import 'package:client/main.dart';
 import 'package:client/core/services/local_storage_service.dart';
-import 'package:client/presentation/screens/auth/login_screen.dart';
 import 'package:client/presentation/screens/edit_profile_screen.dart';
 import 'package:client/presentation/providers/theme_provider.dart';
 import 'package:client/presentation/providers/auth_providers.dart';
@@ -651,7 +651,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
               if (!context.mounted) return;
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                MaterialPageRoute(builder: (_) => const AuthGate()),
                 (route) => false,
               );
             },

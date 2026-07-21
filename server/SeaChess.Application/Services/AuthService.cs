@@ -119,7 +119,7 @@ namespace SeaChess.Application.Services
                 PlayerId = playerId,
                 Username = "guest_" + guestId.ToString("N")[..12],
                 DisplayName = "Khách " + playerId,
-                Email = string.Empty,
+                Email = "guest_" + guestId.ToString("N") + "@guest.local",
                 PasswordHash = string.Empty,
                 Experience = 0,
                 Elo = 0,

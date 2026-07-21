@@ -4,8 +4,8 @@ import 'package:client/presentation/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/presentation/providers/theme_provider.dart';
-import 'presentation/screens/auth/login_screen.dart';
 import 'package:client/core/theme/app_theme.dart';
+import 'package:client/presentation/providers/auth_providers.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -30,45 +30,57 @@ class SeaChessApp extends ConsumerWidget {
   }
 }
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends ConsumerStatefulWidget {
   const AuthGate({super.key});
 
-  /// Đọc token và matchId đang dở từ SharedPreferences
-  Future<({String? token, String? matchId})> _loadStoredData() async {
+  @override
+  ConsumerState<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends ConsumerState<AuthGate> {
+  bool _isLoading = true;
+  bool _hasMatch = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthAndLogin();
+  }
+
+  Future<void> _checkAuthAndLogin() async {
     final storage = LocalStorageService();
-    final token   = await storage.getToken();
+    final token = await storage.getToken();
     final matchId = await storage.getActiveMatch();
-    return (token: token, matchId: matchId);
+
+    if (token == null || token.isEmpty) {
+      // Auto login as guest
+      final success = await ref.read(authNotifierProvider.notifier).guestLogin();
+      if (!success) {
+        // Fallback: If network fails or something, we still show some UI.
+        // But for now, we'll just let it stay on main screen or show error.
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _hasMatch = (matchId != null && matchId.isNotEmpty);
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<({String? token, String? matchId})>(
-      future: _loadStoredData(),
-      builder: (context, snapshot) {
-        // Đang tải
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-        final token   = snapshot.data?.token;
-        final matchId = snapshot.data?.matchId;
+    if (_hasMatch) {
+      return const GameScreen(isRejoining: true);
+    }
 
-        // Chưa đăng nhập
-        if (token == null || token.isEmpty) {
-          return const LoginScreen();
-        }
-
-        // Có trận đang dở → vào GameScreen, nó sẽ tự gọi rejoinMatch()
-        if (matchId != null && matchId.isNotEmpty) {
-          return const GameScreen(isRejoining: true);
-        }
-
-        // Bình thường → vào MainScreen
-        return const MainScreen();
-      },
-    );
+    return const MainScreen();
   }
 }
